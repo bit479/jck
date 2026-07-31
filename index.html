@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="特变电工进出口公司全球业务展示系统">
+  <title>特变电工进出口公司全球业务展示系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/data.js" defer></script>
+  <script src="js/script.js" defer></script>
+</head>
+<body>
+  <!-- 顶部导航仅在四个内容页面中显示，导览页中保持隐藏。 -->
+  <header id="site-header" class="site-header" hidden>
+    <div class="brand" aria-label="特变电工进出口公司">
+      <!-- 正式 LOGO 待补充前，使用简洁文字标志占位。 -->
+      <div class="brand__logo-placeholder" aria-hidden="true">TBEA</div>
+      <div class="brand__text">
+        <strong id="brand-name">特变电工进出口公司</strong>
+        <span id="brand-name-en">TBEA International Business</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- 四个栏目按钮由 js/data.js 中的数据自动生成。 -->
+      <nav id="top-navigation" class="top-navigation" aria-label="顶部栏目导航"></nav>
+
+      <div class="utility-actions" aria-label="辅助操作">
+        <button id="back-guide-button" class="utility-button" type="button">返回导览</button>
+        <button id="fullscreen-button" class="utility-button" type="button" aria-pressed="false">
+          全屏展示
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 网站主容器：所有页面均在当前窗口内部切换。 -->
+  <main class="site-shell">
+    <!-- 1. 开头导览：当前版本默认显示此页面。 -->
+    <section id="guide-page" class="page page--guide is-active" aria-labelledby="guide-title">
+      <!-- 纯 CSS 科技背景，不使用地图、图片或粒子库。 -->
+      <div class="guide-background" aria-hidden="true">
+        <span class="guide-background__glow guide-background__glow--left"></span>
+        <span class="guide-background__glow guide-background__glow--right"></span>
+        <span class="guide-background__orbit guide-background__orbit--large"></span>
+        <span class="guide-background__orbit guide-background__orbit--small"></span>
+        <span class="guide-background__line guide-background__line--one"></span>
+        <span class="guide-background__line guide-background__line--two"></span>
+      </div>
+
+      <div class="guide-content">
+        <p class="guide-kicker">GLOBAL BUSINESS DISPLAY SYSTEM</p>
+        <h1 id="guide-title">特变电工进出口公司全球业务展示系统</h1>
+        <p id="guide-title-en" class="guide-title-en">TBEA International Business Overview</p>
+        <p id="guide-subtitle" class="page-subtitle">
+          立足中国，服务全球，持续推进海外工程建设与矿产资源开发。
+        </p>
+
+        <div class="guide-divider" aria-hidden="true">
+          <span></span>
+        </div>
+
+        <p class="guide-prompt">请选择入口进入系统</p>
+
+        <!-- 四个入口按钮由 js/data.js 中的数据自动生成。 -->
+        <nav id="guide-entries" class="guide-entries" aria-label="系统入口"></nav>
+      </div>
+    </section>
+
+    <!-- 2. 公司简介：当前使用占位文字和占位图片框。 -->
+    <section id="company-page" class="page content-page company-page" aria-labelledby="company-title" tabindex="-1" hidden>
+      <div class="content-frame company-layout">
+        <article class="company-copy">
+          <p class="section-index">01 / COMPANY</p>
+          <p id="company-title-en" class="section-title-en">COMPANY PROFILE</p>
+          <h2 id="company-title">公司简介</h2>
+          <span class="section-accent" aria-hidden="true"></span>
+          <p id="company-description" class="company-description">
+            此处填写特变电工进出口公司的发展历程、业务定位、国际化能力及主要业务概况。
+          </p>
+          <div id="company-tags" class="company-tags" aria-label="公司业务关键词"></div>
+        </article>
+
+        <div class="company-media">
+          <div class="company-image-placeholder" role="img" aria-label="公司宣传图片待补充">
+            <span class="company-image-placeholder__mark" aria-hidden="true">IMAGE</span>
+            <strong id="company-image-placeholder-text">公司宣传图片待补充</strong>
+            <small>COMPANY IMAGE PLACEHOLDER</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 三个地图栏目共用下方的地图模板和同一套 JavaScript 渲染逻辑。 -->
+    <section
+      id="projects-page"
+      class="page content-page map-page map-page--projects"
+      aria-labelledby="projects-title"
+      tabindex="-1"
+      hidden
+    ></section>
+
+    <section
+      id="mining-page"
+      class="page content-page map-page map-page--mining"
+      aria-labelledby="mining-title"
+      tabindex="-1"
+      hidden
+    ></section>
+
+    <section
+      id="future-page"
+      class="page content-page map-page map-page--future"
+      aria-labelledby="future-title"
+      tabindex="-1"
+      hidden
+    ></section>
+  </main>
+
+  <!-- 只保留一份地图页面模板，三个栏目运行时分别复用。 -->
+  <template id="map-page-template">
+    <div class="map-page-frame">
+      <header class="map-page-heading">
+        <div>
+          <p class="section-index" data-map-section-index></p>
+          <p class="section-title-en" data-map-title-en></p>
+          <h2 data-map-title></h2>
+        </div>
+        <p class="map-page-description" data-map-description></p>
+      </header>
+
+      <div class="world-map-area">
+        <div class="world-map-stage">
+          <!-- 本地 SVG 底图与交互层使用相同的 1000×500 坐标系。 -->
+          <img
+            class="world-map-image"
+            alt=""
+            draggable="false"
+            data-map-image
+          >
+          <svg
+            class="world-map-overlay"
+            viewBox="0 0 1000 500"
+            preserveAspectRatio="xMidYMid meet"
+            data-map-overlay
+          >
+            <!-- 连接线位于国家节点下方，不参与点击。 -->
+            <g class="map-connections" data-map-connections aria-hidden="true"></g>
+            <g data-map-nodes></g>
+          </svg>
+          <p class="map-load-error" role="alert" data-map-load-error hidden></p>
+          <p class="map-empty-state" role="status" data-map-empty-state hidden></p>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 国家项目介绍弹窗：内容由 js/data.js 填充。 -->
+  <div id="project-modal" class="project-modal" hidden>
+    <article
+      class="project-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-modal-country"
+      aria-describedby="project-modal-description"
+    >
+      <button
+        id="project-modal-close"
+        class="project-modal__close"
+        type="button"
+        aria-label="关闭项目介绍"
+      >
+        ×
+      </button>
+
+      <div class="project-modal__media">
+        <img
+          id="project-modal-image"
+          class="project-modal__image"
+          alt=""
+          draggable="false"
+          hidden
+        >
+        <div id="project-modal-image-placeholder" class="project-modal__image-placeholder">
+          项目图片待补充
+        </div>
+      </div>
+
+      <div class="project-modal__content">
+        <p id="project-modal-country-en" class="project-modal__country-en"></p>
+        <h2 id="project-modal-country" class="project-modal__country"></h2>
+        <p class="project-modal__label">项目名称</p>
+        <h3 id="project-modal-project-name" class="project-modal__project-name"></h3>
+        <p id="project-modal-description" class="project-modal__description"></p>
+      </div>
+    </article>
+  </div>
+
+  <!-- 未来展望地区弹窗：独立读取 futureOutlook 的两类业务数据。 -->
+  <div id="future-modal" class="project-modal future-modal" hidden>
+    <article
+      class="project-modal__panel future-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="future-modal-country"
+      aria-describedby="future-modal-summary"
+    >
+      <button
+        id="future-modal-close"
+        class="project-modal__close"
+        type="button"
+        aria-label="关闭未来展望介绍"
+      >
+        ×
+      </button>
+
+      <div class="future-modal__content">
+        <header class="future-modal__header">
+          <p id="future-modal-country-en" class="project-modal__country-en"></p>
+          <h2 id="future-modal-country" class="project-modal__country"></h2>
+        </header>
+
+        <section class="future-modal__section" aria-labelledby="future-summary-title">
+          <h3 id="future-summary-title">地区总览</h3>
+          <p id="future-modal-summary" class="future-modal__description"></p>
+        </section>
+
+        <section
+          id="future-project-section"
+          class="future-modal__section"
+          aria-labelledby="future-project-title"
+          hidden
+        >
+          <h3 id="future-project-title">项目建设总览</h3>
+          <p id="future-project-description" class="future-modal__description"></p>
+
+          <div id="future-pending-block" class="future-project-group" hidden>
+            <h4>【待执行】</h4>
+            <ul id="future-pending-list"></ul>
+          </div>
+
+          <div id="future-ongoing-block" class="future-project-group" hidden>
+            <h4>【中标在执行】</h4>
+            <ul id="future-ongoing-list"></ul>
+          </div>
+        </section>
+
+        <section
+          id="future-mining-section"
+          class="future-modal__section"
+          aria-labelledby="future-mining-title"
+          hidden
+        >
+          <h3 id="future-mining-title">矿产资源开发</h3>
+          <p id="future-mining-description" class="future-modal__description"></p>
+          <div id="future-minerals" class="future-minerals"></div>
+        </section>
+      </div>
+    </article>
+  </div>
+</body>
+</html>
