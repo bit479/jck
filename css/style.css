@@ -1,0 +1,258 @@
+/* 基础颜色集中定义，后续调整整体风格时可直接修改这里。 */
+:root {
+  --color-background: #03152b;
+  --color-surface: #061f3b;
+  --color-surface-light: #0a2b4d;
+  --color-primary: #00aeef;
+  --color-highlight: #27e1ff;
+  --color-gold: #f3c969;
+  --color-text: #ffffff;
+  --color-text-muted: #a9c4dd;
+  --color-border: rgba(39, 225, 255, 0.35);
+}
+
+/* 统一盒模型，避免尺寸计算产生意外偏差。 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-text);
+  overflow: hidden;
+  background: var(--color-background);
+  font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+}
+
+button {
+  font: inherit;
+}
+
+button,
+.page {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.site-shell {
+  min-height: 100vh;
+}
+
+/* 固定顶部导航栏。导览页显示时，JavaScript 会将其隐藏。 */
+.site-header {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  min-height: 82px;
+  padding: 12px clamp(20px, 3vw, 48px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: rgba(3, 21, 43, 0.96);
+  border-bottom: 1px solid rgba(39, 225, 255, 0.24);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+}
+
+.site-header[hidden] {
+  display: none;
+}
+
+.brand {
+  display: flex;
+  min-width: 270px;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand__logo-placeholder {
+  display: grid;
+  width: 54px;
+  height: 48px;
+  flex: 0 0 54px;
+  color: var(--color-highlight);
+  place-items: center;
+  border: 1px solid var(--color-primary);
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.brand__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand__text strong {
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand__text span {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.top-navigation,
+.utility-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-button,
+.utility-button {
+  min-height: 48px;
+  padding: 0 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  touch-action: manipulation;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition:
+    transform 0.12s ease,
+    color 0.12s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.nav-button {
+  position: relative;
+}
+
+.nav-button::after {
+  position: absolute;
+  right: 13px;
+  bottom: 5px;
+  left: 13px;
+  height: 2px;
+  content: "";
+  background: transparent;
+}
+
+.nav-button:hover,
+.nav-button:focus-visible,
+.utility-button:hover,
+.utility-button:focus-visible {
+  color: var(--color-text);
+  background: rgba(0, 174, 239, 0.1);
+  border-color: rgba(39, 225, 255, 0.22);
+  outline: none;
+}
+
+.nav-button.is-active {
+  color: var(--color-highlight);
+}
+
+.nav-button.is-active::after {
+  background: var(--color-highlight);
+  box-shadow: 0 0 10px rgba(39, 225, 255, 0.6);
+}
+
+.utility-actions {
+  padding-left: 10px;
+  border-left: 1px solid rgba(169, 196, 221, 0.18);
+}
+
+.utility-button {
+  color: var(--color-text);
+  border-color: rgba(39, 225, 255, 0.26);
+}
+
+.nav-button:active,
+.utility-button:active,
+.project-modal__close:active {
+  transform: scale(0.96);
+}
+
+/* 每个页面共用同一套基础布局。 */
+.page {
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.page.is-active {
+  display: flex;
+  animation: page-fade-in 0.45s ease-out both;
+}
+
+.page[hidden] {
+  display: none;
+}
+
+.content-page {
+  padding: 112px clamp(28px, 5vw, 72px) 32px;
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 80% 25%, rgba(0, 174, 239, 0.12), transparent 28%),
+    var(--color-background);
+  background-size: 44px 44px, 44px 44px, auto, auto;
+}
+
+.page--guide {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(28px, 5vh, 56px) clamp(32px, 6vw, 88px);
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 50% 15%, rgba(0, 174, 239, 0.18), transparent 38%),
+    linear-gradient(145deg, #020d1c 0%, var(--color-background) 46%, #052342 100%);
+  background-size: 48px 48px, 48px 48px, auto, auto;
+}
+
+/* 导览页背景装饰全部由 CSS 绘制，不影响点击操作。 */
+.guide-background,
+.guide-background__glow,
+.guide-background__orbit,
+.guide-background__line {
+  position: absolute;
+  pointer-events: none;
+}
+
+.guide-background {
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+}
+
+.guide-background::before,
+.guide-background::after {
+  position: absolute;
+  content: "";
+}
+
+.guide-background::before {
+  inset: 6% 4%;
+  border
