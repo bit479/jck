@@ -493,6 +493,22 @@ const websiteData = {
    * 项目文字和指标均依据《特变电工塔吉克斯坦金矿项目汇总》整理。
    */
   overseasMining: {
+    videos: [
+    {
+      id: "mine-overview",
+      title: "塔吉克斯坦金矿矿山全景",
+      src: "assets/videos/mining/tajikistan-mine-overview.mp4",
+      poster: "assets/images/mining/tajikistan-gold-mine.jpg",  // 可选封面
+      placeholderText: "矿山全景视频待补充"
+    },
+    {
+      id: "gold-process",
+      title: "黄金选矿生产流程",
+      src: "assets/videos/mining/tajikistan-gold-process.mp4",
+      poster: "",
+      placeholderText: "生产流程视频待补充"
+    }
+  ]
     sectionNumber: "03 / OVERSEAS MINING",
     titleEn: "OVERSEAS MINING DEVELOPMENT",
     title: "海外矿业开发",
