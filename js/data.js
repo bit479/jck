@@ -231,8 +231,9 @@ const websiteData = {
       id: "tajikistan",
       countryName: "塔吉克斯坦",
       countryNameEn: "Tajikistan",
-      longitude: 71.2761,
-      latitude: 38.861,
+      // 杜尚别坐标：68°46.3695717′E，38°36.5766338′N
+      longitude: 68.772826,
+      latitude: 38.609611,
       labelOffsetX: -14,
       labelOffsetY: 18,
       labelAnchor: "end",
