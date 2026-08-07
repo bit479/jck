@@ -3379,11 +3379,13 @@ document.addEventListener("DOMContentLoaded", function () {
       viewer = new Cesium.Viewer(globeEl, {
         baseLayer: new Cesium.ImageryLayer(
           new Cesium.UrlTemplateImageryProvider({
-            /* 高德卫星影像瓦片，国内网络可正常加载；
-             * 原 ArcGIS 全球影像服务在国内网络经常超时，导致地球变成深色不可见。 */
-            url: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            /* 全球卫星影像（Sentinel-2 cloudless by EOX），免费且覆盖全球；
+             * 高德卫星瓦片只覆盖中国境内，国外（如塔吉克斯坦、非洲国家）
+             * 放大后会变成灰色占位图，因此改用全球数据源。 */
+            url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
+            maximumLevel: 16,
             credit: new Cesium.Credit(
-              "高德地图"
+              "Sentinel-2 cloudless by EOX — CC BY 4.0"
             )
           })
         ),
