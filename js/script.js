@@ -3376,9 +3376,11 @@ document.addEventListener("DOMContentLoaded", function () {
       globeEl = document.createElement("div");
       globeEl.className = "world-map-globe";
 
-      /* 底层：EOX 全球卫星影像（免费、覆盖全球），作为兜底；
-       * 顶层：Esri 全球影像（更清晰，最高 z=19）。
-       * Esri 加载失败时 Cesium 会自动显示底层 EOX，避免地球变灰。 */
+      /* 影像分层（从下到上）：
+       * 1. EOX 全球卫星影像：免费、覆盖全球，作为最终兜底；
+       * 2. Esri 全球影像：清晰度较高（最高 z=19）；
+       * 3. 谷歌高清卫星影像（国内可用镜像）：主底图，最清晰（最高 z=20）。
+       * 上层瓦片加载失败时，Cesium 自动显示下一层，避免地球变灰。 */
       var fallbackProvider = new Cesium.UrlTemplateImageryProvider({
         url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
         maximumLevel: 16,
@@ -3386,11 +3388,18 @@ document.addEventListener("DOMContentLoaded", function () {
           "Sentinel-2 cloudless by EOX — CC BY 4.0"
         )
       });
-      var mainProvider = new Cesium.UrlTemplateImageryProvider({
+      var esriProvider = new Cesium.UrlTemplateImageryProvider({
         url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         maximumLevel: 19,
         credit: new Cesium.Credit(
           "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+        )
+      });
+      var googleProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://gac-geo.googlecnapps.club/maps/vt?lyrs=y&hl=zh-CN&gl=CN&src=app&x={x}&y={y}&z={z}",
+        maximumLevel: 20,
+        credit: new Cesium.Credit(
+          "Google 卫星影像"
         )
       });
       viewer = new Cesium.Viewer(globeEl, {
@@ -3406,7 +3415,8 @@ document.addEventListener("DOMContentLoaded", function () {
         infoBox: false,
         selectionIndicator: false
       });
-      viewer.imageryLayers.addImageryProvider(mainProvider);
+      viewer.imageryLayers.addImageryProvider(esriProvider);
+      viewer.imageryLayers.addImageryProvider(googleProvider);
 
       viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(
         "#b7d2e8"
