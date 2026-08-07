@@ -5247,7 +5247,6 @@ body:has(.page--guide.is-active) .llm-assistant {
   width: 58px;
   height: 58px;
   padding: 0;
-  color: #ffffff;
   cursor: pointer;
   cursor: grab;
   touch-action: none;
@@ -5258,25 +5257,95 @@ body:has(.page--guide.is-active) .llm-assistant {
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 50%;
   box-shadow: 0 12px 30px rgba(0, 58, 143, 0.4);
-  font-family: Arial, sans-serif;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+  animation: llm-fab-bob 3s ease-in-out infinite;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+/* 悬浮按钮内的小机器人卡通图形。 */
+.llm-assistant__fab .llm-fab-mascot {
+  display: block;
+  width: 76%;
+  height: 76%;
+  pointer-events: none;
+  transition: transform 0.25s ease;
+}
+
+/* 眨眼动画。 */
+.llm-assistant__fab .llm-fab-eye {
+  transform-origin: center;
+  animation: llm-fab-blink 4.4s infinite;
+}
+
+/* 天线小球呼吸发光。 */
+.llm-assistant__fab .llm-fab-antenna-ball {
+  animation: llm-fab-glow 2s ease-in-out infinite;
+}
+
+@keyframes llm-fab-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes llm-fab-blink {
+  0%,
+  91%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes llm-fab-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 .llm-assistant__fab:hover,
 .llm-assistant__fab:focus-visible {
-  transform: scale(1.06);
+  animation-play-state: paused;
   box-shadow: 0 14px 34px rgba(0, 58, 143, 0.5);
+}
+
+.llm-assistant__fab:hover .llm-fab-mascot,
+.llm-assistant__fab:focus-visible .llm-fab-mascot {
+  transform: scale(1.08) rotate(-5deg);
 }
 
 .llm-assistant__fab.is-dragging {
   cursor: grabbing;
-  transform: scale(1.08);
+  animation-play-state: paused;
   box-shadow: 0 16px 38px rgba(0, 58, 143, 0.55);
+}
+
+.llm-assistant__fab.is-dragging .llm-fab-mascot {
+  transform: scale(1.1);
+}
+
+/* 用户开启“减少动态效果”时，关闭 AI 机器人动画。 */
+@media (prefers-reduced-motion: reduce) {
+  .llm-assistant__fab,
+  .llm-assistant__fab .llm-fab-eye,
+  .llm-assistant__fab .llm-fab-antenna-ball {
+    animation: none;
+  }
+
+  .llm-assistant__fab:hover .llm-fab-mascot,
+  .llm-assistant__fab:focus-visible .llm-fab-mascot,
+  .llm-assistant__fab.is-dragging .llm-fab-mascot {
+    transform: none;
+  }
 }
 
 .llm-assistant__panel {

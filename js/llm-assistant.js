@@ -45,7 +45,23 @@
     fab.className = "llm-assistant__fab";
     fab.type = "button";
     fab.setAttribute("aria-label", "打开网页语音助手");
-    fab.textContent = "AI";
+    /* AI 悬浮按钮使用小型卡通机器人图形（内联 SVG，可离线、可动画）。 */
+    fab.innerHTML =
+      '<svg class="llm-fab-mascot" viewBox="0 0 96 96" aria-hidden="true" focusable="false">' +
+      '<line x1="48" y1="16" x2="48" y2="30" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>' +
+      '<circle cx="48" cy="11" r="5" fill="#ffffff" class="llm-fab-antenna-ball"/>' +
+      '<rect x="16" y="40" width="8" height="18" rx="4" fill="#ffffff"/>' +
+      '<rect x="72" y="40" width="8" height="18" rx="4" fill="#ffffff"/>' +
+      '<rect x="22" y="22" width="52" height="52" rx="18" fill="#ffffff"/>' +
+      '<ellipse cx="36" cy="44" rx="7" ry="8" fill="#1857b2" class="llm-fab-eye"/>' +
+      '<ellipse cx="60" cy="44" rx="7" ry="8" fill="#1857b2" class="llm-fab-eye"/>' +
+      '<circle cx="38.5" cy="41.5" r="2.5" fill="#ffffff"/>' +
+      '<circle cx="62.5" cy="41.5" r="2.5" fill="#ffffff"/>' +
+      '<ellipse cx="28" cy="56" rx="4" ry="3" fill="#ffb3c1" opacity="0.85"/>' +
+      '<ellipse cx="68" cy="56" rx="4" ry="3" fill="#ffb3c1" opacity="0.85"/>' +
+      '<path d="M40 62 Q48 68 56 62" fill="none" stroke="#1857b2" stroke-width="3.5" stroke-linecap="round"/>' +
+      '<rect x="34" y="76" width="28" height="10" rx="5" fill="#ffffff"/>' +
+      "</svg>";
 
     panel.id = "llm-assistant-panel";
     panel.className = "llm-assistant__panel";
