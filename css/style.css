@@ -5247,6 +5247,7 @@ body:has(.page--guide.is-active) .llm-assistant {
   width: 58px;
   height: 58px;
   padding: 0;
+  overflow: hidden;
   cursor: pointer;
   cursor: grab;
   touch-action: none;
@@ -5264,51 +5265,21 @@ body:has(.page--guide.is-active) .llm-assistant {
 /* 悬浮按钮内的小机器人卡通图形。 */
 .llm-assistant__fab .llm-fab-mascot {
   display: block;
-  width: 76%;
-  height: 76%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   pointer-events: none;
   transition: transform 0.25s ease;
 }
 
-/* 眨眼动画。 */
-.llm-assistant__fab .llm-fab-eye {
-  transform-origin: center;
-  animation: llm-fab-blink 4.4s infinite;
-}
-
-/* 天线小球呼吸发光。 */
-.llm-assistant__fab .llm-fab-antenna-ball {
-  animation: llm-fab-glow 2s ease-in-out infinite;
-}
-
+/* 整颗按钮上下浮动并轻微左右摇摆。 */
 @keyframes llm-fab-bob {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes llm-fab-blink {
-  0%,
-  91%,
-  100% {
-    transform: scaleY(1);
-  }
-  95% {
-    transform: scaleY(0.08);
-  }
-}
-
-@keyframes llm-fab-glow {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
+    transform: translateY(-5px) rotate(-3deg);
   }
 }
 
@@ -5336,8 +5307,7 @@ body:has(.page--guide.is-active) .llm-assistant {
 /* 用户开启“减少动态效果”时，关闭 AI 机器人动画。 */
 @media (prefers-reduced-motion: reduce) {
   .llm-assistant__fab,
-  .llm-assistant__fab .llm-fab-eye,
-  .llm-assistant__fab .llm-fab-antenna-ball {
+  .llm-assistant__fab .llm-fab-mascot {
     animation: none;
   }
 
