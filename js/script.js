@@ -200,6 +200,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let miningPointerCurrentY = 0;
   let miningSuppressCardClick = false;
   let projectModalCloseTimer = null;
+  const globeViewers = [];
   const reducedMotionPreference = window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)")
     : null;
@@ -1098,7 +1099,7 @@ document.addEventListener("DOMContentLoaded", function () {
         event.stopPropagation();
 
         if (!techSuppressCardClick && enterButton.dataset.platformUrl) {
-          window.location.href = enterButton.dataset.platformUrl;
+          openTechPlatform(enterButton.dataset.platformUrl);
         }
         return;
       }
@@ -1220,6 +1221,62 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
+  /**
+   * 在当前页面内用全屏遮罩加载科技平台。
+   * 平台页面通过 iframe 加载，不离开当前文档，
+   * 因此网站处于全屏展示状态时不会因跳转被浏览器取消全屏。
+   */
+  function openTechPlatform(platformUrl) {
+    if (!platformUrl) {
+      return;
+    }
+
+    let resolvedUrl;
+    try {
+      resolvedUrl = new URL(platformUrl, window.location.href).href;
+    } catch (error) {
+      resolvedUrl = platformUrl;
+    }
+
+    const overlay = document.createElement("div");
+    const bar = document.createElement("div");
+    const backButton = document.createElement("button");
+    const frame = document.createElement("iframe");
+
+    overlay.className = "tech-platform-overlay";
+    bar.className = "tech-platform-overlay__bar";
+    backButton.className = "tech-platform-overlay__close";
+    backButton.type = "button";
+    backButton.textContent = "← 返回";
+    backButton.setAttribute("aria-label", "关闭平台并返回");
+
+    frame.className = "tech-platform-overlay__frame";
+    frame.src = resolvedUrl;
+    frame.title = "科技平台";
+    frame.setAttribute("allowfullscreen", "");
+    frame.setAttribute("allow", "fullscreen");
+
+    function closeOverlay() {
+      overlay.remove();
+      document.body.classList.remove("has-open-tech-platform");
+      document.removeEventListener("keydown", onOverlayKeydown);
+      backButton.removeEventListener("click", closeOverlay);
+    }
+
+    function onOverlayKeydown(event) {
+      if (event.key === "Escape") {
+        closeOverlay();
+      }
+    }
+
+    backButton.addEventListener("click", closeOverlay);
+    document.addEventListener("keydown", onOverlayKeydown);
+    bar.appendChild(backButton);
+    overlay.append(bar, frame);
+    document.body.appendChild(overlay);
+    document.body.classList.add("has-open-tech-platform");
+  }
+
   /** 将海外矿业数据整理为“总览 + 项目 + 局部地图”的轮播顺序。 */
   function getMiningCards() {
     const miningData = websiteData.overseasMining;
@@ -1257,6 +1314,15 @@ document.addEventListener("DOMContentLoaded", function () {
         id: "mining-map",
         type: "map",
         mapPanel: miningData.mapPanel
+      });
+    }
+
+    if (Array.isArray(miningData.videos) && miningData.videos.length > 0) {
+      cards.push({
+        id: "mining-video",
+        type: "video",
+        title: miningData.videoCardTitle || "矿区航拍视频",
+        videos: miningData.videos
       });
     }
 
@@ -1467,6 +1533,257 @@ document.addEventListener("DOMContentLoaded", function () {
     return fragment;
   }
 
+  /**
+   * 渲染矿区航拍视频卡片，并把视频包装成可交互播放器。
+   * 支持点击播放/暂停、拖动进度条跳转和键盘控制；
+   * 单个视频加载失败时显示占位文字，不影响其余视频。
+   */
+  function createMiningVideoContent(videos) {
+    const fragment = document.createDocumentFragment();
+    const list = document.createElement("div");
+
+    fragment.append(
+      createMiningCardHeader(
+        "MINE AERIAL VIEW",
+        websiteData.overseasMining.videoCardTitle || "矿区航拍视频"
+      )
+    );
+
+    list.className = "mining-video-list";
+
+    videos.forEach(function (videoData, index) {
+      const item = document.createElement("figure");
+      const shell = document.createElement("div");
+      const video = document.createElement("video");
+      const playButton = document.createElement("button");
+      const bar = document.createElement("div");
+      const toggleButton = document.createElement("button");
+      const progress = document.createElement("div");
+      const progressFill = document.createElement("span");
+      const timeLabel = document.createElement("span");
+      const caption = document.createElement("figcaption");
+      const placeholder = document.createElement("p");
+      const videoTitle = videoData.title || ("矿区航拍视频" + (index + 1));
+
+      item.className = "mining-video-item";
+      shell.className = "mining-video-shell";
+
+      video.className = "mining-video-item__player";
+      video.preload = "metadata";
+      video.playsInline = true;
+      video.src = videoData.file || "";
+      video.setAttribute("aria-label", videoTitle);
+
+      playButton.className = "mining-video-item__play";
+      playButton.type = "button";
+      playButton.setAttribute("aria-label", "播放" + videoTitle);
+      playButton.innerHTML = '<span aria-hidden="true">▶</span>';
+
+      bar.className = "mining-video-item__bar";
+      toggleButton.className = "mining-video-item__toggle";
+      toggleButton.type = "button";
+      toggleButton.setAttribute("aria-label", "播放视频");
+      toggleButton.innerHTML = '<span aria-hidden="true">▶</span>';
+
+      progress.className = "mining-video-item__progress";
+      progress.setAttribute("role", "slider");
+      progress.setAttribute("aria-label", "视频播放进度");
+      progress.setAttribute("aria-valuemin", "0");
+      progress.setAttribute("aria-valuemax", "0");
+      progress.setAttribute("aria-valuenow", "0");
+      progress.tabIndex = 0;
+      progressFill.className = "mining-video-item__progress-fill";
+      progress.appendChild(progressFill);
+
+      timeLabel.className = "mining-video-item__time";
+      timeLabel.textContent = "0:00 / 0:00";
+
+      bar.append(toggleButton, progress, timeLabel);
+      shell.append(video, playButton, bar);
+
+      placeholder.className = "mining-video-item__placeholder";
+      placeholder.textContent = videoTitle + "视频待补充";
+      placeholder.hidden = true;
+
+      video.addEventListener("error", function () {
+        video.hidden = true;
+        playButton.hidden = true;
+        bar.hidden = true;
+        placeholder.hidden = false;
+      });
+
+      caption.className = "mining-video-item__caption";
+      caption.textContent = videoTitle;
+
+      item.append(shell, placeholder, caption);
+      list.appendChild(item);
+
+      bindMiningVideoPlayer(
+        video,
+        shell,
+        playButton,
+        toggleButton,
+        progress,
+        progressFill,
+        timeLabel
+      );
+    });
+
+    fragment.appendChild(list);
+    return fragment;
+  }
+
+  /** 绑定交互式视频播放器的播放、进度与键盘控制。 */
+  function bindMiningVideoPlayer(
+    video,
+    shell,
+    playButton,
+    toggleButton,
+    progress,
+    progressFill,
+    timeLabel
+  ) {
+    let dragging = false;
+
+    function formatVideoTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) {
+        return "0:00";
+      }
+      const total = Math.floor(seconds);
+      const minutes = Math.floor(total / 60);
+      const remainder = total % 60;
+      return minutes + ":" + (remainder < 10 ? "0" : "") + remainder;
+    }
+
+    function updateProgress() {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      const current = Number.isFinite(video.currentTime)
+        ? video.currentTime
+        : 0;
+      const ratio = duration > 0 ? current / duration : 0;
+      progressFill.style.width = (ratio * 100).toFixed(2) + "%";
+      timeLabel.textContent =
+        formatVideoTime(current) + " / " + formatVideoTime(duration);
+      progress.setAttribute("aria-valuemax", String(Math.round(duration)));
+      progress.setAttribute("aria-valuenow", String(Math.round(current)));
+    }
+
+    function playVideo() {
+      if (typeof video.play === "function") {
+        video.play().catch(function () {
+          // 加载失败或浏览器限制时保持暂停，由占位状态提示。
+        });
+      }
+    }
+
+    function togglePlay() {
+      if (video.paused || video.ended) {
+        playVideo();
+      } else {
+        video.pause();
+      }
+    }
+
+    function updatePlayingState() {
+      const playing = !video.paused && !video.ended;
+      playButton.hidden = playing;
+      toggleButton.innerHTML = playing
+        ? '<span aria-hidden="true">❚❚</span>'
+        : '<span aria-hidden="true">▶</span>';
+      toggleButton.setAttribute(
+        "aria-label",
+        playing ? "暂停视频" : "播放视频"
+      );
+    }
+
+    function seekToClientX(clientX) {
+      const rect = progress.getBoundingClientRect();
+      if (rect.width <= 0) {
+        return;
+      }
+      const ratio = Math.min(
+        1,
+        Math.max(0, (clientX - rect.left) / rect.width)
+      );
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        video.currentTime = ratio * video.duration;
+        updateProgress();
+      }
+    }
+
+    playButton.addEventListener("click", playVideo);
+    toggleButton.addEventListener("click", togglePlay);
+    video.addEventListener("click", togglePlay);
+
+    video.addEventListener("play", updatePlayingState);
+    video.addEventListener("pause", updatePlayingState);
+    video.addEventListener("ended", updatePlayingState);
+    video.addEventListener("loadedmetadata", updateProgress);
+    video.addEventListener("timeupdate", updateProgress);
+
+    // 阻止视频区域内的指针事件冒泡到轮播，避免拖动冲突。
+    shell.addEventListener("pointerdown", function (event) {
+      event.stopPropagation();
+    });
+
+    progress.addEventListener("pointerdown", function (event) {
+      dragging = true;
+      if (typeof progress.setPointerCapture === "function") {
+        progress.setPointerCapture(event.pointerId);
+      }
+      seekToClientX(event.clientX);
+      event.preventDefault();
+    });
+
+    progress.addEventListener("pointermove", function (event) {
+      if (dragging) {
+        seekToClientX(event.clientX);
+      }
+    });
+
+    function finishSeek(event) {
+      if (dragging) {
+        dragging = false;
+        seekToClientX(event.clientX);
+      }
+    }
+
+    progress.addEventListener("pointerup", finishSeek);
+    progress.addEventListener("pointercancel", function () {
+      dragging = false;
+    });
+
+    progress.addEventListener("keydown", function (event) {
+      const step = 5;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        video.currentTime = Math.max(0, video.currentTime - step);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        if (Number.isFinite(video.duration)) {
+          video.currentTime = Math.min(
+            video.duration,
+            video.currentTime + step
+          );
+        }
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        video.currentTime = 0;
+      } else if (event.key === "End") {
+        event.preventDefault();
+        if (Number.isFinite(video.duration)) {
+          video.currentTime = video.duration;
+        }
+      } else if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        togglePlay();
+      }
+    });
+
+    updatePlayingState();
+    updateProgress();
+  }
+
   /** 创建一个由矿业轮播复用的左、中、右视觉槽位。 */
   function createMiningCarouselCard(slotName) {
     const card = document.createElement("article");
@@ -1505,6 +1822,8 @@ document.addEventListener("DOMContentLoaded", function () {
       body.appendChild(createMiningProjectContent(cardData.project || {}));
     } else if (cardData.type === "map") {
       body.appendChild(createMiningMapContent(cardData.mapPanel || {}));
+    } else if (cardData.type === "video") {
+      body.appendChild(createMiningVideoContent(cardData.videos || []));
     }
   }
 
@@ -2347,7 +2666,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (projectModalProjectCount) {
-      projectModalProjectCount.hidden = !isOverseasProjectCountry;
+      projectModalProjectCount.hidden =
+        !isOverseasProjectCountry || projects.length === 0;
       projectModalProjectCount.textContent =
         "共" + projects.length + "个重点项目";
     }
@@ -2696,7 +3016,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     selectedFutureNode = nodeGroup;
-    selectedFutureNode.classList.add("is-selected");
+    if (selectedFutureNode) {
+      selectedFutureNode.classList.add("is-selected");
+    }
     lastFocusedElement = nodeGroup;
     activeFutureCountry = country;
     activeFutureMineralIndex = 0;
@@ -2993,22 +3315,29 @@ document.addEventListener("DOMContentLoaded", function () {
         })
       : [];
 
-    renderMapConnections(mapConnections, visibleCountries);
+    // 优先使用 3D 地球；Cesium 未加载（如离线）时回退到原 SVG 平面地图。
+    const globeRendered =
+      visibleCountries.length > 0 &&
+      renderGlobeMap(mapContent, configuration, visibleCountries);
 
-    if (mapNodes) {
-      visibleCountries.forEach(function (country) {
-        const markerRadius = calculateMarkerRadius(
-          country,
-          visibleCountries
-        );
-        mapNodes.appendChild(
-          createMapNode(
+    if (!globeRendered) {
+      renderMapConnections(mapConnections, visibleCountries);
+
+      if (mapNodes) {
+        visibleCountries.forEach(function (country) {
+          const markerRadius = calculateMarkerRadius(
             country,
-            markerRadius,
-            configuration.interactionType || "project"
-          )
-        );
-      });
+            visibleCountries
+          );
+          mapNodes.appendChild(
+            createMapNode(
+              country,
+              markerRadius,
+              configuration.interactionType || "project"
+            )
+          );
+        });
+      }
     }
 
     if (mapEmptyState && visibleCountries.length === 0) {
@@ -3017,6 +3346,195 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     page.replaceChildren(mapContent);
+  }
+
+  /**
+   * 创建 3D 地球（Cesium）并添加国家节点。
+   * 使用高分辨率卫星影像；点击国家后镜头飞到该国，卫星影像保持清晰。
+   * @returns {boolean} 是否成功创建地球
+   */
+  function renderGlobeMap(mapContent, configuration, countries) {
+    if (!window.Cesium || !Array.isArray(countries)) {
+      return false;
+    }
+
+    const stage = mapContent.querySelector(".world-map-stage");
+    const mapImage = mapContent.querySelector("[data-map-image]");
+    const mapOverlay = mapContent.querySelector("[data-map-overlay]");
+
+    if (!stage) {
+      return false;
+    }
+
+    const Cesium = window.Cesium;
+    const interactionType = configuration.interactionType || "project";
+    const isFuture = interactionType === "future";
+    let globeEl = null;
+    let viewer = null;
+
+    try {
+      globeEl = document.createElement("div");
+      globeEl.className = "world-map-globe";
+
+      viewer = new Cesium.Viewer(globeEl, {
+        baseLayer: new Cesium.ImageryLayer(
+          new Cesium.UrlTemplateImageryProvider({
+            /* 高德卫星影像瓦片，国内网络可正常加载；
+             * 原 ArcGIS 全球影像服务在国内网络经常超时，导致地球变成深色不可见。 */
+            url: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+            credit: new Cesium.Credit(
+              "高德地图"
+            )
+          })
+        ),
+        baseLayerPicker: false,
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        navigationHelpButton: false,
+        animation: false,
+        timeline: false,
+        fullscreenButton: false,
+        infoBox: false,
+        selectionIndicator: false
+      });
+
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(
+        "#b7d2e8"
+      );
+      viewer.scene.screenSpaceCameraController.minimumZoomDistance =
+        120000;
+      viewer.scene.screenSpaceCameraController.maximumZoomDistance =
+        50000000;
+      globeEl.__globeViewer = viewer;
+    } catch (error) {
+      console.warn("3D 地球创建失败，回退到平面地图：", error);
+      return false;
+    }
+
+    // 地球创建成功后再替换平面地图 DOM。
+    if (mapImage) {
+      mapImage.remove();
+    }
+    if (mapOverlay) {
+      mapOverlay.remove();
+    }
+    stage.classList.add("world-map-stage--globe");
+    stage.appendChild(globeEl);
+
+    // 初始视角：亚洲及周边。
+    try {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(75, 18, 28000000),
+        duration: 0
+      });
+    } catch (error) {
+      // 初始视角失败不影响节点渲染。
+    }
+
+    const entityMap = {};
+    const goldColor = Cesium.Color.fromCssColorString("#e8b43a");
+    const blueColor = Cesium.Color.fromCssColorString("#3f8cff");
+    const labelBg = Cesium.Color.fromCssColorString("#0a1f3d").withAlpha(
+      0.6
+    );
+
+    countries.forEach(function (country) {
+      const id = "node-" + country.id;
+      const color =
+        isFuture && country.markerStyle === "blue"
+          ? blueColor
+          : goldColor;
+
+      try {
+        viewer.entities.add({
+          id: id,
+          position: Cesium.Cartesian3.fromDegrees(
+            country.longitude,
+            country.latitude,
+            0
+          ),
+          point: {
+            pixelSize: 12,
+            color: color,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY
+          },
+          label: {
+            text: country.countryName,
+            font: "600 14px 'Microsoft YaHei', Arial, sans-serif",
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.fromCssColorString("#0a1f3d"),
+            outlineWidth: 4,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -24),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            showBackground: true,
+            backgroundColor: labelBg,
+            backgroundPadding: new Cesium.Cartesian2(8, 6)
+          }
+        });
+        entityMap[id] = {
+          country: country,
+          interactionType: interactionType
+        };
+      } catch (error) {
+        console.warn("国家节点创建失败：" + country.countryName, error);
+      }
+    });
+
+    const clickHandler = new Cesium.ScreenSpaceEventHandler(
+      viewer.scene.canvas
+    );
+    clickHandler.setInputAction(function (click) {
+      let picked = null;
+      try {
+        picked = viewer.scene.pick(click.position);
+      } catch (error) {
+        return;
+      }
+      if (!picked || !picked.id) {
+        return;
+      }
+      const info = entityMap[picked.id.id];
+      if (!info) {
+        return;
+      }
+      flyGlobeToCountry(viewer, info.country);
+      if (info.interactionType === "future") {
+        openFutureOutlookModal(info.country, null);
+      } else {
+        openProjectModal(info.country);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    globeViewers.push(viewer);
+
+    const page = document.getElementById(configuration.pageId);
+    if (page && !page.hidden && typeof viewer.resize === "function") {
+      viewer.resize();
+    }
+    return true;
+  }
+
+  /** 将 3D 地球镜头飞到指定国家，卫星影像在该层级保持清晰。 */
+  function flyGlobeToCountry(viewer, country) {
+    if (!viewer || !country) {
+      return;
+    }
+    try {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          country.longitude,
+          country.latitude,
+          2200000
+        ),
+        duration: 1.6
+      });
+    } catch (error) {
+      console.warn("镜头飞行失败：", error);
+    }
   }
 
   /** 海外项目建设与双千亿计划继续共用公共地图渲染。 */
@@ -3054,6 +3572,13 @@ document.addEventListener("DOMContentLoaded", function () {
       const isTargetPage = page.id === targetPageId;
       page.hidden = !isTargetPage;
       page.classList.toggle("is-active", isTargetPage);
+    });
+
+    // 3D 地球所在的页面从隐藏变为显示后，画布尺寸需要重新计算。
+    globeViewers.forEach(function (viewer) {
+      if (viewer && typeof viewer.resize === "function") {
+        viewer.resize();
+      }
     });
 
     // 科技赋能页面使用固定 hash，确保从独立平台直接返回时能恢复该栏目。

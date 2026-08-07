@@ -578,12 +578,27 @@ const websiteData = {
       mapViewBox: [620, 105, 175, 105],
       markerLabel: "金矿项目",
       markerStyle: "gold",
-      markerCoordinates: null,
-      approximatePosition: [0.5, 0.52],
-      isApproximate: true,
+      // 艾尼市坐标（39.40°N，68.54°E），矿区位于艾尼市一带。
+      markerCoordinates: [68.54, 39.4],
+      approximatePosition: [0.4, 0.34],
+      isApproximate: false,
       legend: "金色节点：金矿资源布局",
-      note: "矿区位置为示意，具体位置以正式资料为准。"
-    }
+      note: "矿区位于塔吉克斯坦艾尼市。"
+    },
+    videoCardTitleEn: "MINE AERIAL VIEW",
+    videoCardTitle: "矿区航拍视频",
+    videos: [
+      {
+        id: "mining-point-to-point",
+        title: "矿区转点航拍",
+        file: "assets/videos/mining-point-to-point.mp4"
+      },
+      {
+        id: "mining-zoom",
+        title: "矿区缩放航拍",
+        file: "assets/videos/mining-zoom.mp4"
+      }
+    ]
   },
 
   futureOutlookPage: {
