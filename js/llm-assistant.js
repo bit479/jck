@@ -2,7 +2,7 @@
  * 网页语音助手：右下角悬浮按钮。
  * 支持两种提问方式：
  * 1. 打字提问：输入问题后点“发送”。
- * 2. 语音提问：点麦克风按钮说话，识别成功后自动发送。
+ * 2. 语音提问：点麦克风按钮开始录音，再点一次结束并自动识别发送。
  * 大模型会根据 js/data.js 里的网页资料回答，回答默认用语音朗读，
  * 可在面板右上角关闭朗读。
  */
@@ -10,10 +10,17 @@
   "use strict";
 
   var voiceEnabled = true;
-  var recognition = null;
   var waiting = false;
   var statusTimer = null;
   var fabDragged = false;
+  var micStream = null;
+  var micContext = null;
+  var micGain = null;
+  var micProcessor = null;
+  var micSource = null;
+  var micChunks = [];
+  var micRecording = false;
+  var micAutoStopTimer = null;
 
   /* ==================== 页面结构 ==================== */
   function createAssistantUI() {
@@ -333,63 +340,237 @@
     window.speechSynthesis.speak(utterance);
   }
 
-  /* ==================== 语音识别 ==================== */
-  function createRecognition() {
-    var SpeechRecognitionClass =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionClass) {
+  /* ==================== 语音识别（硅基流动 SenseVoiceSmall） ==================== */
+  function getAsrConfig() {
+    var config = typeof llmConfig !== "undefined" ? llmConfig : null;
+    if (!config || !config.asrApiKey || !config.asrEndpoint) {
       return null;
     }
-    var instance = new SpeechRecognitionClass();
-    instance.lang = "zh-CN";
-    instance.interimResults = false;
-    instance.maxAlternatives = 1;
-    instance.onresult = function (event) {
-      var transcript = "";
-      for (var i = 0; i < event.results.length; i++) {
-        var result = event.results[i];
-        if (result[0] && result[0].transcript) {
-          transcript += result[0].transcript;
+    return config;
+  }
+
+  /* 释放录音相关的所有资源，不触发识别。 */
+  function teardownMic() {
+    micRecording = false;
+    if (micAutoStopTimer) {
+      window.clearTimeout(micAutoStopTimer);
+      micAutoStopTimer = null;
+    }
+    try {
+      if (micProcessor) {
+        micProcessor.disconnect();
+      }
+      if (micSource) {
+        micSource.disconnect();
+      }
+      if (micGain) {
+        micGain.disconnect();
+      }
+      if (micContext && micContext.state !== "closed") {
+        micContext.close();
+      }
+    } catch (error) {
+      // 关闭音频上下文失败时忽略异常。
+    }
+    micProcessor = null;
+    micSource = null;
+    micGain = null;
+    micContext = null;
+    if (micStream) {
+      micStream.getTracks().forEach(function (track) {
+        track.stop();
+      });
+      micStream = null;
+    }
+    var ui = getUI();
+    ui.micButton.classList.remove("is-listening");
+  }
+
+  function startMicRecording() {
+    if (micRecording) {
+      return;
+    }
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      setStatus("当前浏览器不支持录音，请直接打字提问。");
+      return;
+    }
+    setStatus("正在请求麦克风权限…");
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(function (stream) {
+        if (micRecording) {
+          stream.getTracks().forEach(function (track) {
+            track.stop();
+          });
+          return;
         }
+        var AudioContextClass =
+          window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          stream.getTracks().forEach(function (track) {
+            track.stop();
+          });
+          setStatus("当前浏览器不支持录音，请直接打字提问。");
+          return;
+        }
+        micStream = stream;
+        micChunks = [];
+        /* 尽量以 16kHz 采样，与语音识别接口的常见输入格式一致。 */
+        micContext = new AudioContextClass({ sampleRate: 16000 });
+        micSource = micContext.createMediaStreamSource(stream);
+        micGain = micContext.createGain();
+        micGain.gain.value = 0;
+        micProcessor = micContext.createScriptProcessor(4096, 1, 1);
+        micProcessor.onaudioprocess = function (event) {
+          var data = event.inputBuffer.getChannelData(0);
+          var copy = new Float32Array(data.length);
+          copy.set(data);
+          micChunks.push(copy);
+        };
+        micSource.connect(micProcessor);
+        micProcessor.connect(micGain);
+        micGain.connect(micContext.destination);
+        micRecording = true;
+        var ui = getUI();
+        ui.micButton.classList.add("is-listening");
+        setStatus("正在录音，再点一次🎤结束并识别…");
+        micAutoStopTimer = window.setTimeout(function () {
+          if (micRecording) {
+            stopMicRecording();
+          }
+        }, 15000);
+      })
+      .catch(function () {
+        setStatus(
+          "麦克风权限被拒绝，请在浏览器地址栏允许麦克风后重试，或直接打字提问。"
+        );
+      });
+  }
+
+  function stopMicRecording() {
+    if (!micRecording) {
+      return;
+    }
+    var sampleRate = micContext ? micContext.sampleRate : 16000;
+    teardownMic();
+
+    var totalLength = 0;
+    micChunks.forEach(function (chunk) {
+      totalLength += chunk.length;
+    });
+    if (totalLength === 0) {
+      micChunks = [];
+      setStatus("没有录到声音，请重试或直接打字提问。");
+      return;
+    }
+    var samples = new Float32Array(totalLength);
+    var offset = 0;
+    micChunks.forEach(function (chunk) {
+      samples.set(chunk, offset);
+      offset += chunk.length;
+    });
+    micChunks = [];
+    transcribeWithAsr(encodeWav(samples, sampleRate));
+  }
+
+  function cancelMicRecording() {
+    if (!micRecording) {
+      return;
+    }
+    teardownMic();
+    micChunks = [];
+  }
+
+  /* 把 16bit 单声道 PCM 编码成 WAV 文件。 */
+  function encodeWav(samples, sampleRate) {
+    var bytesPerSample = 2;
+    var dataSize = samples.length * bytesPerSample;
+    var buffer = new ArrayBuffer(44 + dataSize);
+    var view = new DataView(buffer);
+    function writeString(offset, str) {
+      for (var i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
       }
-      var ui = getUI();
-      ui.question.value = transcript;
-      setStatus("");
-      if (transcript.trim()) {
-        sendQuestion();
-      }
-    };
-    instance.onerror = function (event) {
+    }
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * bytesPerSample, true);
+    view.setUint16(32, bytesPerSample, true);
+    view.setUint16(34, 8 * bytesPerSample, true);
+    writeString(36, "data");
+    view.setUint32(40, dataSize, true);
+    var offset2 = 44;
+    for (var i = 0; i < samples.length; i++) {
+      var sample = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset2, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset2 += 2;
+    }
+    return new Blob([buffer], { type: "audio/wav" });
+  }
+
+  function transcribeWithAsr(blob) {
+    var config = getAsrConfig();
+    if (!config) {
       setStatus(
-        "语音识别失败（" +
-          (event.error || "未知错误") +
-          "），请直接打字提问。"
+        "语音识别未配置，请在 js/llm-config.js 中填写语音识别 API Key。"
       );
-    };
-    instance.onend = function () {
-      var ui = getUI();
-      ui.micButton.classList.remove("is-listening");
-    };
-    return instance;
+      return;
+    }
+    var formData = new FormData();
+    formData.append("model", config.asrModel || "FunAudioLLM/SenseVoiceSmall");
+    formData.append("file", blob, "speech.wav");
+    setStatus("正在识别语音…");
+    fetch(config.asrEndpoint, {
+      method: "POST",
+      headers: { Authorization: "Bearer " + config.asrApiKey },
+      body: formData
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().then(function (errorData) {
+            var message =
+              errorData && errorData.error && errorData.error.message
+                ? errorData.error.message
+                : "识别接口返回 " + response.status;
+            throw new Error(message);
+          });
+        }
+        return response.json();
+      })
+      .then(function (json) {
+        var text = (json && json.text ? json.text : "").trim();
+        if (!text) {
+          setStatus("没有识别到内容，请靠近麦克风再试一次。");
+          return;
+        }
+        var ui = getUI();
+        ui.question.value = text;
+        setStatus("");
+        sendQuestion();
+      })
+      .catch(function (error) {
+        setStatus(
+          "语音识别失败（" +
+            (error && error.message ? error.message : "未知错误") +
+            "），请直接打字提问。"
+        );
+      });
   }
 
   function toggleListening() {
-    var ui = getUI();
-    if (!recognition) {
-      setStatus("当前浏览器不支持语音识别，请直接打字提问。");
-      return;
-    }
-    if (ui.micButton.classList.contains("is-listening")) {
-      recognition.stop();
-      ui.micButton.classList.remove("is-listening");
-      return;
-    }
-    try {
-      recognition.start();
-      ui.micButton.classList.add("is-listening");
-      setStatus("请开始说话…");
-    } catch (error) {
-      setStatus("语音识别启动失败，请直接打字提问。");
+    if (micRecording) {
+      stopMicRecording();
+    } else {
+      startMicRecording();
     }
   }
 
@@ -451,6 +632,9 @@
       }
     });
     ui.closeButton.addEventListener("click", function () {
+      if (micRecording) {
+        cancelMicRecording();
+      }
       ui.panel.hidden = true;
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
@@ -584,12 +768,10 @@
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       getUI();
-      recognition = createRecognition();
       enableDraggableFab(getUI().fab, getUI().root, getUI().panel);
     });
   } else {
     getUI();
-    recognition = createRecognition();
     enableDraggableFab(getUI().fab, getUI().root, getUI().panel);
   }
 })();
