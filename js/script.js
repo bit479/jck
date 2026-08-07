@@ -3376,19 +3376,25 @@ document.addEventListener("DOMContentLoaded", function () {
       globeEl = document.createElement("div");
       globeEl.className = "world-map-globe";
 
+      /* 底层：EOX 全球卫星影像（免费、覆盖全球），作为兜底；
+       * 顶层：Esri 全球影像（更清晰，最高 z=19）。
+       * Esri 加载失败时 Cesium 会自动显示底层 EOX，避免地球变灰。 */
+      var fallbackProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
+        maximumLevel: 16,
+        credit: new Cesium.Credit(
+          "Sentinel-2 cloudless by EOX — CC BY 4.0"
+        )
+      });
+      var mainProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        maximumLevel: 19,
+        credit: new Cesium.Credit(
+          "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+        )
+      });
       viewer = new Cesium.Viewer(globeEl, {
-        baseLayer: new Cesium.ImageryLayer(
-          new Cesium.UrlTemplateImageryProvider({
-            /* 全球卫星影像（Sentinel-2 cloudless by EOX），免费且覆盖全球；
-             * 高德卫星瓦片只覆盖中国境内，国外（如塔吉克斯坦、非洲国家）
-             * 放大后会变成灰色占位图，因此改用全球数据源。 */
-            url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
-            maximumLevel: 16,
-            credit: new Cesium.Credit(
-              "Sentinel-2 cloudless by EOX — CC BY 4.0"
-            )
-          })
-        ),
+        baseLayer: new Cesium.ImageryLayer(fallbackProvider),
         baseLayerPicker: false,
         geocoder: false,
         homeButton: false,
@@ -3400,6 +3406,7 @@ document.addEventListener("DOMContentLoaded", function () {
         infoBox: false,
         selectionIndicator: false
       });
+      viewer.imageryLayers.addImageryProvider(mainProvider);
 
       viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(
         "#b7d2e8"
