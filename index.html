@@ -5,10 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="特变电工进出口公司全球业务展示系统">
   <title>特变电工进出口公司全球业务展示系统</title>
-  <link rel="icon" href="favicon.png" type="image/png">
+  <!-- 3D 地球（Cesium）：海外项目建设与双千亿计划地图使用。
+       通过 CDN 加载；离线时页面会自动回退到原 SVG 平面地图。 -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/cesium@1.104.0/Build/Cesium/Widgets/widgets.css"
+  >
+  <script>
+    window.CESIUM_BASE_URL =
+      "https://cdn.jsdelivr.net/npm/cesium@1.104.0/Build/Cesium/";
+  </script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/cesium@1.104.0/Build/Cesium/Cesium.js"
+    defer
+  ></script>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/data.js" defer></script>
   <script src="js/script.js" defer></script>
+  <script src="js/llm-config.js" defer></script>
+  <script src="js/llm-assistant.js" defer></script>
 </head>
 <body>
   <!-- 所有页面共用同一套顶部导航；导览页使用透明叠加样式。 -->
