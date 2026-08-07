@@ -31,6 +31,10 @@ const websiteData = {
       {
         title: "科技赋能",
         targetPageId: "tech-page"
+      },
+      {
+        title: "数字人",
+        targetPageId: "digital-human-page"
       }
     ],
     backGuideText: "返回导览",

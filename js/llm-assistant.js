@@ -597,7 +597,12 @@
     askLlm(questionText)
       .then(function (answer) {
         appendMessage(answer, "assistant");
-        speakText(answer);
+        /* 数字人已启动时由数字人播报回答，避免与浏览器朗读重复出声。 */
+        if (window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive()) {
+          window.tbeaDigitalHuman.speak(answer);
+        } else {
+          speakText(answer);
+        }
         setStatus("");
       })
       .catch(function (error) {

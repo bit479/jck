@@ -719,6 +719,133 @@ button,
   border-style: dashed;
 }
 
+/* ==================== 数字人页面 ==================== */
+.digital-human-page {
+  align-items: stretch;
+}
+
+.digital-human-frame {
+  display: flex;
+  width: min(1320px, 100%);
+  min-height: 0;
+  margin: 0 auto;
+  flex-direction: column;
+}
+
+.digital-human-heading {
+  display: grid;
+  padding: 0 4px 14px;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(360px, 1.2fr);
+  align-items: end;
+  gap: 48px;
+  border-bottom: 1px solid rgba(0, 58, 143, 0.16);
+}
+
+.digital-human-heading .section-index {
+  margin-bottom: 10px;
+}
+
+.digital-human-heading h2 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.digital-human-heading .map-page-description {
+  margin: 0 0 4px;
+}
+
+.digital-human-body {
+  display: grid;
+  min-height: 0;
+  padding-top: 16px;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(300px, 1fr) minmax(280px, 0.7fr);
+  gap: 24px;
+}
+
+/* SDK 渲染容器必须要有明确的宽高。 */
+.digital-human-sdk {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(0, 58, 143, 0.12), transparent 55%),
+    linear-gradient(145deg, #eef3fa, #d9e6f2);
+  border: 1px solid rgba(0, 58, 143, 0.24);
+  border-radius: 12px;
+}
+
+.digital-human-sdk canvas,
+.digital-human-sdk video {
+  display: block;
+}
+
+.digital-human-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.digital-human-status {
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 14px;
+  color: var(--color-text-muted);
+  background: rgba(238, 244, 251, 0.92);
+  border: 1px solid rgba(0, 58, 143, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.digital-human-questions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.digital-human-question {
+  min-height: 48px;
+  padding: 0 12px;
+  color: var(--color-primary);
+  cursor: pointer;
+  touch-action: manipulation;
+  background: #ffffff;
+  border: 1px solid rgba(0, 58, 143, 0.28);
+  border-radius: 8px;
+  font-size: 14px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.digital-human-question:hover,
+.digital-human-question:focus-visible {
+  background: rgba(0, 58, 143, 0.06);
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.digital-human-question:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 980px) {
+  .digital-human-body {
+    grid-template-columns: 1fr;
+  }
+
+  .digital-human-sdk {
+    min-height: 420px;
+  }
+}
+
 /* 共用的国家项目介绍弹窗；当前只使用直接显示和隐藏。 */
 .project-modal {
   position: fixed;

@@ -3645,6 +3645,11 @@ document.addEventListener("DOMContentLoaded", function () {
       stopMiningCarouselMotion();
     }
 
+    // 数字人页面显示时启动 3D 数字人（首次进入会下载角色资源）。
+    if (targetPageId === "digital-human-page" && window.tbeaDigitalHuman) {
+      window.tbeaDigitalHuman.start();
+    }
+
     // 当前栏目的导航按钮显示高亮状态。
     if (topNavigation) {
       topNavigation.querySelectorAll(".nav-button").forEach(function (button) {

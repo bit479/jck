@@ -20,11 +20,17 @@
     src="https://cdn.jsdelivr.net/npm/cesium@1.104.0/Build/Cesium/Cesium.js"
     defer
   ></script>
+  <!-- 魔珐星云 3D 数字人 SDK：数字人页面使用，仅支持 localhost 或 https 环境。 -->
+  <script
+    src="https://media.xingyun3d.com/xingyun3d/general/litesdk/xmovAvatar@latest.js"
+    defer
+  ></script>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/data.js" defer></script>
   <script src="js/script.js" defer></script>
   <script src="js/llm-config.js" defer></script>
   <script src="js/llm-assistant.js" defer></script>
+  <script src="js/digital-human.js" defer></script>
 </head>
 <body>
   <!-- 所有页面共用同一套顶部导航；导览页使用透明叠加样式。 -->
@@ -286,6 +292,40 @@
 
           <div id="tech-carousel-dots" class="tech-carousel__dots" aria-label="选择科技平台"></div>
         </section>
+      </div>
+    </section>
+
+    <!-- 7. 3D 数字人：魔珐星云具身驱动 SDK，展示与讲解由 js/digital-human.js 控制。 -->
+    <section
+      id="digital-human-page"
+      class="page content-page digital-human-page"
+      aria-labelledby="digital-human-title"
+      tabindex="-1"
+      hidden
+    >
+      <div class="digital-human-frame">
+        <header class="digital-human-heading">
+          <div>
+            <p id="digital-human-section-number" class="section-index">06 / DIGITAL HUMAN</p>
+            <p id="digital-human-title-en" class="section-title-en">DIGITAL HUMAN</p>
+            <h2 id="digital-human-title">数字人</h2>
+          </div>
+          <p id="digital-human-description" class="map-page-description">
+            3D 数字人讲解员。点击下方问题即可让她开口介绍；在语音助手里提问时，回答也会由她播报。
+          </p>
+        </header>
+
+        <div class="digital-human-body">
+          <!-- SDK 渲染容器，宽高由 CSS 指定。 -->
+          <div id="digital-human-sdk" class="digital-human-sdk" aria-label="3D数字人"></div>
+
+          <div class="digital-human-side">
+            <p id="digital-human-status" class="digital-human-status" role="status">
+              数字人加载中…
+            </p>
+            <div id="digital-human-questions" class="digital-human-questions" aria-label="数字人讲解问题"></div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
