@@ -1,46 +1,28 @@
 /*
  * 3D 数字人（魔珐星云 具身驱动 SDK）接入脚本。
  *
- * 注意：
- * 1. appId / appSecret 会随网页源码暴露，这是该 SDK 的客户端直连接入方式；
+ * 说明：
+ * 1. 数字人以悬浮窗形式常驻网页右下角，浮于所有内容上层；
+ *    点击数字人弹出语音/文本聊天窗口（由 js/llm-assistant.js 提供）。
+ * 2. appId / appSecret 会随网页源码暴露，这是该 SDK 的客户端直连接入方式；
  *    正式对外发布前，请在魔珐星云平台重新生成密钥。
- * 2. SDK 仅支持 localhost 或 https 环境访问（file:// 或 http://IP 无法使用）。
- * 3. 数字人页面被打开时自动初始化；初始化会下载角色资源，需要联网。
+ * 3. SDK 仅支持 localhost 或 https 环境访问（file:// 或 http://IP 无法使用），
+ *    此时悬浮窗自动回退为静态机器人头像，聊天功能仍可使用。
  */
 (function () {
   "use strict";
 
   var sdk = null;
   var initialized = false;
+  var sdkReady = false;
+  var floatRoot = null;
+  var sdkContainer = null;
+  var fallbackImage = null;
+  var labelEl = null;
 
-  /* 预设讲解问题，点击后让数字人开口。 */
-  var questions = [
-    {
-      label: "打招呼",
-      text: "大家好，欢迎来到特变电工进出口公司全球业务展示系统，很高兴为大家讲解。"
-    },
-    {
-      label: "公司介绍",
-      text: "特变电工进出口公司是特变电工集团负责全球化经营的核心平台，深耕海外市场近三十年，业务覆盖全球七十余个国家和地区。"
-    },
-    {
-      label: "海外项目建设",
-      text: "公司以输变电 EPC 总包为核心，在塔吉克斯坦、吉尔吉斯斯坦、埃塞俄比亚、肯尼亚、赞比亚等国家持续建设电力基础设施。"
-    },
-    {
-      label: "海外矿业开发",
-      text: "公司在塔吉克斯坦开展金矿资源开发，上库马尔克和东杜奥巴两个矿区已形成稳定运营能力。"
-    },
-    {
-      label: "双千亿计划",
-      text: "面向十五五，公司正加快向双千亿级企业迈进，持续推进海外成套项目建设与矿产资源开发。"
-    }
-  ];
-
-  function setStatus(text) {
-    var el = document.getElementById("digital-human-status");
-    if (el) {
-      el.textContent = text || "";
+  function setLabel(text) {
+    if (labelEl) {
+      labelEl.textContent = text || "";
     }
   }
 
@@ -56,6 +38,53 @@
     return false;
   }
 
+  /* 创建右下角悬浮窗结构。 */
+  function buildFloat() {
+    floatRoot = document.createElement("div");
+    floatRoot.className = "digital-human-float";
+    floatRoot.setAttribute("role", "button");
+    floatRoot.setAttribute("aria-label", "数字人助手，点击开始对话");
+    floatRoot.tabIndex = 0;
+
+    var avatar = document.createElement("div");
+    avatar.className = "digital-human-float__avatar";
+
+    sdkContainer = document.createElement("div");
+    sdkContainer.id = "digital-human-sdk";
+    sdkContainer.className = "digital-human-sdk";
+
+    fallbackImage = document.createElement("img");
+    fallbackImage.className = "digital-human-float__fallback";
+    fallbackImage.src = "assets/images/ai/ai-mascot.svg";
+    fallbackImage.alt = "";
+    fallbackImage.draggable = false;
+
+    avatar.appendChild(sdkContainer);
+    avatar.appendChild(fallbackImage);
+
+    labelEl = document.createElement("span");
+    labelEl.className = "digital-human-float__label";
+    labelEl.textContent = "数字人助手";
+
+    floatRoot.appendChild(avatar);
+    floatRoot.appendChild(labelEl);
+    document.body.appendChild(floatRoot);
+
+    floatRoot.addEventListener("click", function () {
+      if (window.tbeaAssistant && window.tbeaAssistant.togglePanel) {
+        window.tbeaAssistant.togglePanel();
+      }
+    });
+    floatRoot.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        if (window.tbeaAssistant && window.tbeaAssistant.togglePanel) {
+          window.tbeaAssistant.togglePanel();
+        }
+      }
+    });
+  }
+
   function createSdkOptions() {
     return {
       containerId: "#digital-human-sdk",
@@ -65,13 +94,14 @@
       hardwareAcceleration: "prefer-hardware",
       onMessage: function (message) {
         if (message && message.code === 10001) {
-          setStatus("数字人容器不存在，请检查页面结构。");
+          setLabel("数字人容器异常，点击仍可聊天");
         }
       },
       onStatusChange: function (status) {
-        // 0 在线，1 离线；只提示一次就绪状态。
+        // 0 在线，1 离线。
         if (status === 0) {
-          setStatus("数字人已就绪，点击下方问题让她开口吧。");
+          sdkReady = true;
+          setLabel("数字人助手");
         }
       },
       onStartSessionWarning: function (message) {
@@ -86,11 +116,11 @@
       return;
     }
     if (!window.XmovAvatar) {
-      setStatus("数字人 SDK 加载失败，请检查网络后重试。");
+      setLabel("数字人加载失败，点击仍可聊天");
       return;
     }
     if (!isSupportedEnvironment()) {
-      setStatus("数字人需要在 localhost 或 https 环境下运行，当前环境不支持。");
+      setLabel("当前环境不支持数字人");
       return;
     }
     initialized = true;
@@ -101,18 +131,19 @@
         onDownloadProgress: function (progress) {
           var value = Math.round(progress);
           if (value >= 100) {
-            setStatus("数字人已就绪，点击下方问题让她开口吧。");
+            sdkReady = true;
+            if (fallbackImage) {
+              fallbackImage.style.display = "none";
+            }
+            setLabel("数字人助手");
           } else {
-            setStatus("数字人资源加载中 " + value + "%");
+            setLabel("数字人加载中 " + value + "%");
           }
         }
       });
     } catch (error) {
       initialized = false;
-      setStatus(
-        "数字人初始化失败：" +
-          (error && error.message ? error.message : "未知错误")
-      );
+      setLabel("数字人加载失败，点击仍可聊天");
     }
   }
 
@@ -130,23 +161,6 @@
     return !!sdk;
   }
 
-  function buildQuestions() {
-    var wrap = document.getElementById("digital-human-questions");
-    if (!wrap) {
-      return;
-    }
-    questions.forEach(function (item) {
-      var button = document.createElement("button");
-      button.type = "button";
-      button.className = "digital-human-question";
-      button.textContent = item.label;
-      button.addEventListener("click", function () {
-        speak(item.text);
-      });
-      wrap.appendChild(button);
-    });
-  }
-
   window.tbeaDigitalHuman = {
     start: start,
     speak: speak,
@@ -161,15 +175,18 @@
         sdk = null;
       }
       initialized = false;
+      sdkReady = false;
     }
   };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
-      buildQuestions();
+      buildFloat();
+      start();
     });
   } else {
-    buildQuestions();
+    buildFloat();
+    start();
   }
 
   window.addEventListener("beforeunload", function () {

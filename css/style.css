@@ -719,64 +719,54 @@ button,
   border-style: dashed;
 }
 
-/* ==================== 数字人页面 ==================== */
-.digital-human-page {
-  align-items: stretch;
-}
-
-.digital-human-frame {
+/* ==================== 3D 数字人悬浮窗 ==================== */
+.digital-human-float {
+  position: fixed;
+  z-index: 1500;
+  right: clamp(16px, 2.5vw, 36px);
+  bottom: clamp(16px, 3vh, 32px);
   display: flex;
-  width: min(1320px, 100%);
-  min-height: 0;
-  margin: 0 auto;
   flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.digital-human-heading {
-  display: grid;
-  padding: 0 4px 14px;
-  flex: 0 0 auto;
-  grid-template-columns: minmax(300px, 0.8fr) minmax(360px, 1.2fr);
-  align-items: end;
-  gap: 48px;
-  border-bottom: 1px solid rgba(0, 58, 143, 0.16);
+/* 导览页右下角有轮播箭头，数字人临时移到左下角避免遮挡。 */
+body:has(.page--guide.is-active) .digital-human-float {
+  right: auto;
+  left: clamp(16px, 2.5vw, 36px);
 }
 
-.digital-human-heading .section-index {
-  margin-bottom: 10px;
-}
-
-.digital-human-heading h2 {
-  margin: 0;
-  font-size: clamp(28px, 3vw, 42px);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-}
-
-.digital-human-heading .map-page-description {
-  margin: 0 0 4px;
-}
-
-.digital-human-body {
-  display: grid;
-  min-height: 0;
-  padding-top: 16px;
-  flex: 1 1 auto;
-  grid-template-columns: minmax(300px, 1fr) minmax(280px, 0.7fr);
-  gap: 24px;
-}
-
-/* SDK 渲染容器必须要有明确的宽高。 */
-.digital-human-sdk {
+.digital-human-float__avatar {
   position: relative;
-  width: 100%;
-  min-height: 480px;
+  width: 150px;
+  height: 184px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 30%, rgba(0, 58, 143, 0.12), transparent 55%),
+    radial-gradient(circle at 50% 32%, rgba(0, 58, 143, 0.14), transparent 55%),
     linear-gradient(145deg, #eef3fa, #d9e6f2);
-  border: 1px solid rgba(0, 58, 143, 0.24);
-  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(0, 45, 111, 0.35);
+}
+
+.digital-human-float__avatar::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  border: 1px solid rgba(0, 58, 143, 0.18);
+  border-radius: 14px;
+}
+
+/* SDK 渲染容器：占满悬浮窗头像区域。 */
+.digital-human-sdk {
+  position: absolute;
+  inset: 0;
 }
 
 .digital-human-sdk canvas,
@@ -784,66 +774,26 @@ button,
   display: block;
 }
 
-.digital-human-side {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 14px;
+/* 数字人未就绪或环境不支持时，显示静态机器人头像。 */
+.digital-human-float__fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 
-.digital-human-status {
-  min-height: 44px;
-  margin: 0;
-  padding: 10px 14px;
-  color: var(--color-text-muted);
-  background: rgba(238, 244, 251, 0.92);
-  border: 1px solid rgba(0, 58, 143, 0.2);
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.digital-human-questions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.digital-human-question {
-  min-height: 48px;
-  padding: 0 12px;
-  color: var(--color-primary);
-  cursor: pointer;
-  touch-action: manipulation;
-  background: #ffffff;
-  border: 1px solid rgba(0, 58, 143, 0.28);
-  border-radius: 8px;
-  font-size: 14px;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.12s ease;
-}
-
-.digital-human-question:hover,
-.digital-human-question:focus-visible {
-  background: rgba(0, 58, 143, 0.06);
-  border-color: var(--color-primary);
-  outline: none;
-}
-
-.digital-human-question:active {
-  transform: scale(0.97);
-}
-
-@media (max-width: 980px) {
-  .digital-human-body {
-    grid-template-columns: 1fr;
-  }
-
-  .digital-human-sdk {
-    min-height: 420px;
-  }
+.digital-human-float__label {
+  min-height: 24px;
+  padding: 2px 12px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1857b2, #003a8f);
+  border-radius: 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 45, 111, 0.3);
 }
 
 /* 共用的国家项目介绍弹窗；当前只使用直接显示和隐藏。 */
@@ -5350,99 +5300,23 @@ h2 {
   color: #142236;
 }
 
-/* ==================== 网页语音助手 ==================== */
+/* ==================== 数字人聊天窗口 ==================== */
 .llm-assistant {
   position: fixed;
-  z-index: 200;
+  z-index: 1400;
   right: clamp(16px, 2.5vw, 36px);
-  bottom: clamp(16px, 3vh, 32px);
+  bottom: clamp(230px, 26vh, 256px);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 12px;
 }
 
-/* 导览页右下角有轮播箭头，助手按钮临时移到左下角避免遮挡。 */
+/* 导览页数字人移到左下角时，聊天窗口跟随到左下角。 */
 body:has(.page--guide.is-active) .llm-assistant {
   right: auto;
   left: clamp(16px, 2.5vw, 36px);
   align-items: flex-start;
-}
-
-.llm-assistant__fab {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  padding: 0;
-  overflow: hidden;
-  cursor: pointer;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  place-items: center;
-  background: linear-gradient(135deg, #1857b2, #003a8f);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 50%;
-  box-shadow: 0 12px 30px rgba(0, 58, 143, 0.4);
-  animation: llm-fab-bob 3s ease-in-out infinite;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-/* 悬浮按钮内的小机器人卡通图形。 */
-.llm-assistant__fab .llm-fab-mascot {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-  transition: transform 0.25s ease;
-}
-
-/* 整颗按钮上下浮动并轻微左右摇摆。 */
-@keyframes llm-fab-bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-5px) rotate(-3deg);
-  }
-}
-
-.llm-assistant__fab:hover,
-.llm-assistant__fab:focus-visible {
-  animation-play-state: paused;
-  box-shadow: 0 14px 34px rgba(0, 58, 143, 0.5);
-}
-
-.llm-assistant__fab:hover .llm-fab-mascot,
-.llm-assistant__fab:focus-visible .llm-fab-mascot {
-  transform: scale(1.08) rotate(-5deg);
-}
-
-.llm-assistant__fab.is-dragging {
-  cursor: grabbing;
-  animation-play-state: paused;
-  box-shadow: 0 16px 38px rgba(0, 58, 143, 0.55);
-}
-
-.llm-assistant__fab.is-dragging .llm-fab-mascot {
-  transform: scale(1.1);
-}
-
-/* 用户开启“减少动态效果”时，关闭 AI 机器人动画。 */
-@media (prefers-reduced-motion: reduce) {
-  .llm-assistant__fab,
-  .llm-assistant__fab .llm-fab-mascot {
-    animation: none;
-  }
-
-  .llm-assistant__fab:hover .llm-fab-mascot,
-  .llm-assistant__fab:focus-visible .llm-fab-mascot,
-  .llm-assistant__fab.is-dragging .llm-fab-mascot {
-    transform: none;
-  }
 }
 
 .llm-assistant__panel {
@@ -5652,9 +5526,14 @@ body:has(.page--guide.is-active) .llm-assistant {
 }
 
 @media (max-width: 520px) {
-  .llm-assistant {
+  .digital-human-float {
     right: 12px;
     bottom: 12px;
+  }
+
+  .llm-assistant {
+    right: 12px;
+    bottom: 222px;
   }
 
   .llm-assistant__panel {

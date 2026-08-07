@@ -12,7 +12,6 @@
   var voiceEnabled = true;
   var waiting = false;
   var statusTimer = null;
-  var fabDragged = false;
   var micStream = null;
   var micContext = null;
   var micGain = null;
@@ -25,7 +24,6 @@
   /* ==================== 页面结构 ==================== */
   function createAssistantUI() {
     var root = document.createElement("div");
-    var fab = document.createElement("button");
     var panel = document.createElement("section");
     var header = document.createElement("header");
     var title = document.createElement("strong");
@@ -41,26 +39,14 @@
 
     root.id = "llm-assistant";
     root.className = "llm-assistant";
-    fab.id = "llm-assistant-open";
-    fab.className = "llm-assistant__fab";
-    fab.type = "button";
-    fab.setAttribute("aria-label", "打开网页语音助手");
-    /* AI 悬浮按钮使用开源 Bottts 机器人头像（assets/images/ai/ai-mascot.svg），
-     * 由 DiceBear 生成，原作者 Pablo Stanley，允许个人和商用。 */
-    var mascot = document.createElement("img");
-    mascot.className = "llm-fab-mascot";
-    mascot.src = "assets/images/ai/ai-mascot.svg";
-    mascot.alt = "";
-    mascot.draggable = false;
-    fab.appendChild(mascot);
 
     panel.id = "llm-assistant-panel";
     panel.className = "llm-assistant__panel";
     panel.hidden = true;
-    panel.setAttribute("aria-label", "网页语音助手");
+    panel.setAttribute("aria-label", "数字人助手聊天窗口");
 
     header.className = "llm-assistant__header";
-    title.textContent = "网页语音助手";
+    title.textContent = "数字人助手";
     headerActions.className = "llm-assistant__header-actions";
 
     voiceToggle.id = "llm-assistant-voice-toggle";
@@ -107,12 +93,11 @@
 
     inputRow.append(question, micButton, sendButton);
     panel.append(header, messages, status, inputRow);
-    root.append(fab, panel);
+    root.append(panel);
     document.body.appendChild(root);
 
     return {
       root: root,
-      fab: fab,
       panel: panel,
       voiceToggle: voiceToggle,
       closeButton: closeButton,
@@ -632,17 +617,6 @@
 
   function bindEvents() {
     var ui = assistantUI;
-    ui.fab.addEventListener("click", function () {
-      // 拖动结束后浏览器会补发一次 click，这里吞掉，避免误开面板。
-      if (fabDragged) {
-        fabDragged = false;
-        return;
-      }
-      ui.panel.hidden = !ui.panel.hidden;
-      if (!ui.panel.hidden) {
-        ui.question.focus();
-      }
-    });
     ui.closeButton.addEventListener("click", function () {
       if (micRecording) {
         cancelMicRecording();
@@ -670,120 +644,25 @@
     ui.micButton.addEventListener("click", toggleListening);
   }
 
-  /* ==================== AI 按钮可拖动 ==================== */
-  function enableDraggableFab(fab, root, panel) {
-    var dragging = false;
-    var moved = false;
-    var startX = 0;
-    var startY = 0;
-    var startLeft = 0;
-    var startTop = 0;
-
-    function clamp(value, min, max) {
-      return Math.min(Math.max(value, min), max);
+  /* 供数字人悬浮窗调用的面板开关。 */
+  function togglePanel() {
+    var ui = getUI();
+    ui.panel.hidden = !ui.panel.hidden;
+    if (!ui.panel.hidden) {
+      ui.question.focus();
     }
-
-    function moveFabTo(left, top) {
-      var rect = fab.getBoundingClientRect();
-      var viewportWidth = window.innerWidth;
-      var viewportHeight = window.innerHeight;
-      left = clamp(left, 8, viewportWidth - rect.width - 8);
-      top = clamp(top, 8, viewportHeight - rect.height - 8);
-      root.style.left = Math.round(left) + "px";
-      root.style.top = Math.round(top) + "px";
-      root.style.right = "auto";
-      root.style.bottom = "auto";
-      root.style.alignItems = "flex-start";
-    }
-
-    function snapFabToEdge() {
-      var rect = fab.getBoundingClientRect();
-      var viewportWidth = window.innerWidth;
-      var viewportHeight = window.innerHeight;
-      var left = clamp(rect.left, 8, viewportWidth - rect.width - 8);
-      var top = clamp(rect.top, 8, viewportHeight - rect.height - 8);
-      var side = left + rect.width / 2 < viewportWidth / 2 ? "left" : "right";
-
-      // 垂直位置保留拖动结果，用 bottom 锚定，面板打开时向上展开。
-      root.style.top = "auto";
-      root.style.bottom = Math.round(viewportHeight - top - rect.height) + "px";
-
-      if (side === "left") {
-        root.style.left = Math.round(left) + "px";
-        root.style.right = "auto";
-        root.style.alignItems = "flex-start";
-      } else {
-        root.style.right = Math.round(viewportWidth - left - rect.width) + "px";
-        root.style.left = "auto";
-        root.style.alignItems = "flex-end";
-      }
-    }
-
-    fab.addEventListener("pointerdown", function (event) {
-      if (event.pointerType === "mouse" && event.button !== 0) {
-        return;
-      }
-      // 面板打开时不进入拖动，交由点击收起面板。
-      if (!panel.hidden) {
-        return;
-      }
-      var rect = fab.getBoundingClientRect();
-      dragging = true;
-      moved = false;
-      startX = event.clientX;
-      startY = event.clientY;
-      startLeft = rect.left;
-      startTop = rect.top;
-      if (typeof fab.setPointerCapture === "function") {
-        fab.setPointerCapture(event.pointerId);
-      }
-    });
-
-    fab.addEventListener("pointermove", function (event) {
-      if (!dragging) {
-        return;
-      }
-      var dx = event.clientX - startX;
-      var dy = event.clientY - startY;
-      if (!moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) {
-        return;
-      }
-      moved = true;
-      fab.classList.add("is-dragging");
-      moveFabTo(startLeft + dx, startTop + dy);
-    });
-
-    function finishDrag(event) {
-      if (!dragging) {
-        return;
-      }
-      dragging = false;
-      fab.classList.remove("is-dragging");
-      if (moved) {
-        fabDragged = true;
-        snapFabToEdge();
-      }
-      if (typeof fab.releasePointerCapture === "function") {
-        try {
-          fab.releasePointerCapture(event.pointerId);
-        } catch (error) {
-          // 指针捕获已释放时忽略异常。
-        }
-      }
-    }
-
-    fab.addEventListener("pointerup", finishDrag);
-    fab.addEventListener("pointercancel", finishDrag);
   }
+
+  window.tbeaAssistant = {
+    togglePanel: togglePanel
+  };
 
   /* 页面加载完成后初始化，避免影响既有脚本。 */
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       getUI();
-      enableDraggableFab(getUI().fab, getUI().root, getUI().panel);
     });
   } else {
     getUI();
-    enableDraggableFab(getUI().fab, getUI().root, getUI().panel);
   }
 })();
