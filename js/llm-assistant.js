@@ -410,133 +410,19 @@
     window.speechSynthesis.speak(utterance);
   }
 
-  /* ==================== 流式朗读（边输出边读） ==================== */
-  var liveSpeech = {
-    first: true,    // 是否还没朗读过任何内容
-    ended: false,   // 是否已发出结束标记
-    buffer: "",     // 已生成但还没送去朗读的文字
-    lastSendAt: 0   // 上次送去朗读的时间
-  };
-
-  /* 攒够这么多字再送去朗读，保证数字人一次有足够音频，避免断句卡顿。 */
-  var speechBatchMin = 60;
-  /* 单次最多送这么多字，保证仍然是“边生成边朗读”。 */
-  var speechBatchMax = 100;
-  /* 即使没攒够，超过这个时间也要送一次，避免迟迟不开口。 */
-  var speechBatchTimeout = 4000;
-
+  /* ==================== 朗读（回答完成后整段朗读，保证连续不中断） ==================== */
   function isDigitalHumanActive() {
     return !!(window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive());
   }
 
-  /* 新问题开始时：停止上一次朗读，重置流式朗读状态。 */
+  /* 新问题开始时：停止上一次朗读。 */
   function resetLiveSpeech() {
-    liveSpeech.first = true;
-    liveSpeech.ended = false;
-    liveSpeech.buffer = "";
-    liveSpeech.lastSendAt = Date.now();
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
   }
 
-  /* 把新收到的文字送入朗读：攒够一段后整段送去，避免段落间卡顿。 */
-  function feedLiveSpeech(delta) {
-    if (!voiceEnabled) {
-      liveSpeech.buffer = "";
-      return;
-    }
-    var hadBuffer = liveSpeech.buffer.length > 0;
-    liveSpeech.buffer += delta || "";
-    if (!hadBuffer) {
-      // 从第一段文字出现开始计时，避免把等待接口响应的时间也算进去。
-      liveSpeech.lastSendAt = Date.now();
-    }
-    maybeFlushBatch(false);
-  }
-
-  /* 判断是否该把缓冲的文字送去朗读，并把切好的一段交给数字人。 */
-  function maybeFlushBatch(force) {
-    var now = Date.now();
-    var enough = liveSpeech.buffer.length >= speechBatchMin;
-    var timedOut = now - liveSpeech.lastSendAt >= speechBatchTimeout;
-    if (!force && !enough && !timedOut) {
-      return;
-    }
-    if (!liveSpeech.buffer.trim()) {
-      return;
-    }
-    var size = Math.min(liveSpeech.buffer.length, speechBatchMax);
-    var cut = size;
-    // 尽量在句号、换行等自然停顿处切，避免切断词语或数字。
-    for (var i = size - 1; i >= 0; i--) {
-      if ("。！？…!?；;\n".indexOf(liveSpeech.buffer.charAt(i)) !== -1) {
-        cut = i + 1;
-        break;
-      }
-    }
-    if (cut < 20) {
-      cut = size; // 停顿点太靠前，按最大尺寸切
-    }
-    var chunk = liveSpeech.buffer.slice(0, cut);
-    liveSpeech.buffer = liveSpeech.buffer.slice(cut);
-    liveSpeech.lastSendAt = now;
-    speakChunk(chunk, false);
-  }
-
-  /* 回答结束时：把最后一句读出来并标记结束；
-     若最后一句已在流式过程中读完，则补发空结束标记让数字人正常收尾。 */
-  function finishLiveSpeech() {
-    if (!voiceEnabled) {
-      return;
-    }
-    maybeFlushBatch(true);
-    if (liveSpeech.buffer.trim()) {
-      speakChunk(liveSpeech.buffer.trim(), true);
-      liveSpeech.buffer = "";
-    } else if (!liveSpeech.ended && !liveSpeech.first && isDigitalHumanActive()) {
-      window.tbeaDigitalHuman.speak("", false, true);
-      liveSpeech.ended = true;
-    }
-  }
-
-  /* 朗读一小段文字：数字人支持分段朗读，浏览器则逐段排队。 */
-  function speakChunk(chunk, isLast) {
-    if (!chunk) {
-      return;
-    }
-    if (isDigitalHumanActive()) {
-      // 数字人：第一段 is_start=true，最后一段 is_end=true，中间连续朗读。
-      window.tbeaDigitalHuman.speak(chunk, liveSpeech.first, isLast);
-      liveSpeech.first = false;
-      liveSpeech.ended = isLast;
-    } else {
-      speakQueued(chunk);
-    }
-  }
-
-  /* 浏览器朗读：逐句排队，不打断前面正在读的句子。 */
-  function speakQueued(text) {
-    if (!voiceEnabled || !window.speechSynthesis) {
-      return;
-    }
-    var utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "zh-CN";
-    utterance.rate = 1;
-    var voices = window.speechSynthesis.getVoices();
-    var zhVoice = null;
-    voices.forEach(function (voice) {
-      if (!zhVoice && /zh|cmn|chinese/i.test(voice.lang + " " + voice.name)) {
-        zhVoice = voice;
-      }
-    });
-    if (zhVoice) {
-      utterance.voice = zhVoice;
-    }
-    window.speechSynthesis.speak(utterance);
-  }
-
-  /* 非流式降级时，整段朗读一次。 */
+  /* 整段朗读一次：数字人一次性合成连续语音，不会出现中断。 */
   function speakFullAnswer(text) {
     if (!text || !voiceEnabled) {
       return;
@@ -807,7 +693,6 @@
       fullAnswer += delta;
       answerBubble.textContent = fullAnswer;
       ui.messages.scrollTop = ui.messages.scrollHeight;
-      feedLiveSpeech(delta);
     })
       .then(function (answer) {
         if (!answerBubble) {
@@ -815,11 +700,8 @@
           answerBubble.textContent = answer;
           fullAnswer = answer;
         }
-        /* 收尾朗读；若从未流式朗读过（旧浏览器降级），则整段朗读一次。 */
-        finishLiveSpeech();
-        if (liveSpeech.first) {
-          speakFullAnswer(fullAnswer);
-        }
+        /* 文字已快速输出完成，现在整段朗读，保证连续不中断。 */
+        speakFullAnswer(fullAnswer);
         setStatus("");
       })
       .catch(function (error) {
