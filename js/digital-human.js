@@ -4,10 +4,11 @@
  * 说明：
  * 1. 数字人以悬浮窗形式常驻网页右下角，浮于所有内容上层；
  *    点击数字人弹出语音/文本聊天窗口（由 js/llm-assistant.js 提供）。
+ *    整个数字人助手（人物和标签）支持鼠标或手指拖动，位置会被记住。
  * 2. appId / appSecret 会随网页源码暴露，这是该 SDK 的客户端直连接入方式；
  *    正式对外发布前，请在魔珐星云平台重新生成密钥。
  * 3. SDK 仅支持 localhost 或 https 环境访问（file:// 或 http://IP 无法使用），
- *    此时悬浮窗自动回退为静态机器人头像，聊天功能仍可使用。
+ *    此时只显示“数字人助手”标签，聊天功能仍可使用。
  */
 (function () {
   "use strict";
@@ -17,11 +18,12 @@
   var sdkReady = false;
   var floatRoot = null;
   var sdkContainer = null;
-  var fallbackImage = null;
   var labelEl = null;
   var retryCount = 0;
   var retryTimer = null;
   var watchdogTimer = null;
+  var dragState = null;
+  var suppressClick = false;
 
   function setLabel(text) {
     if (labelEl) {
@@ -56,14 +58,7 @@
     sdkContainer.id = "digital-human-sdk";
     sdkContainer.className = "digital-human-sdk";
 
-    fallbackImage = document.createElement("img");
-    fallbackImage.className = "digital-human-float__fallback";
-    fallbackImage.src = "assets/images/ai/ai-mascot.svg";
-    fallbackImage.alt = "";
-    fallbackImage.draggable = false;
-
     avatar.appendChild(sdkContainer);
-    avatar.appendChild(fallbackImage);
 
     labelEl = document.createElement("span");
     labelEl.className = "digital-human-float__label";
@@ -73,7 +68,12 @@
     floatRoot.appendChild(labelEl);
     document.body.appendChild(floatRoot);
 
+    /* 点击打开聊天面板；拖动数字人后自动忽略随后产生的点击，避免误触。 */
     floatRoot.addEventListener("click", function () {
+      if (suppressClick) {
+        suppressClick = false;
+        return;
+      }
       if (window.tbeaAssistant && window.tbeaAssistant.togglePanel) {
         window.tbeaAssistant.togglePanel();
       }
@@ -86,6 +86,115 @@
         }
       }
     });
+
+    /* 支持鼠标和手指拖动整个数字人助手。 */
+    floatRoot.addEventListener("pointerdown", function (event) {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+      var rect = floatRoot.getBoundingClientRect();
+      dragState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        originLeft: rect.left,
+        originTop: rect.top,
+        moved: false
+      };
+      try {
+        floatRoot.setPointerCapture(event.pointerId);
+      } catch (error) {
+        // 不支持指针捕获时忽略。
+      }
+    });
+
+    floatRoot.addEventListener("pointermove", function (event) {
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      var dx = event.clientX - dragState.startX;
+      var dy = event.clientY - dragState.startY;
+      // 位移小于 6px 视为点击，不进入拖动。
+      if (!dragState.moved && Math.abs(dx) < 6 && Math.abs(dy) < 6) {
+        return;
+      }
+      dragState.moved = true;
+      floatRoot.classList.add("is-dragging");
+      floatRoot.style.left = dragState.originLeft + dx + "px";
+      floatRoot.style.top = dragState.originTop + dy + "px";
+      floatRoot.style.right = "auto";
+      floatRoot.style.bottom = "auto";
+    });
+
+    function finishDrag(event) {
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      if (dragState.moved) {
+        clampFloatPosition();
+        saveFloatPosition();
+        suppressClick = true;
+        // 面板已打开时，让面板跟随数字人到新位置。
+        if (window.tbeaAssistant && window.tbeaAssistant.syncPanel) {
+          window.tbeaAssistant.syncPanel();
+        }
+      }
+      dragState = null;
+      floatRoot.classList.remove("is-dragging");
+      try {
+        floatRoot.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        // 释放指针捕获失败时忽略。
+      }
+    }
+
+    floatRoot.addEventListener("pointerup", finishDrag);
+    floatRoot.addEventListener("pointercancel", finishDrag);
+  }
+
+  /* 拖动结束后把数字人限制在屏幕范围内，避免拖出屏幕。 */
+  function clampFloatPosition() {
+    var rect = floatRoot.getBoundingClientRect();
+    var maxLeft = Math.max(0, window.innerWidth - rect.width);
+    var maxTop = Math.max(0, window.innerHeight - rect.height);
+    var left = Math.min(Math.max(rect.left, 0), maxLeft);
+    var top = Math.min(Math.max(rect.top, 0), maxTop);
+    if (left !== rect.left || top !== rect.top) {
+      floatRoot.style.left = left + "px";
+      floatRoot.style.top = top + "px";
+    }
+  }
+
+  /* 记住上次拖动的位置，刷新页面后数字人仍停留在原处，避免遮挡文字。 */
+  function saveFloatPosition() {
+    try {
+      var rect = floatRoot.getBoundingClientRect();
+      window.localStorage.setItem(
+        "tbeaDigitalHumanPos",
+        JSON.stringify({ left: rect.left, top: rect.top })
+      );
+    } catch (error) {
+      // 保存失败时忽略。
+    }
+  }
+
+  function loadFloatPosition() {
+    try {
+      var saved = window.localStorage.getItem("tbeaDigitalHumanPos");
+      if (!saved) {
+        return;
+      }
+      var pos = JSON.parse(saved);
+      if (typeof pos.left === "number" && typeof pos.top === "number") {
+        floatRoot.style.left = pos.left + "px";
+        floatRoot.style.top = pos.top + "px";
+        floatRoot.style.right = "auto";
+        floatRoot.style.bottom = "auto";
+        clampFloatPosition();
+      }
+    } catch (error) {
+      // 读取失败时保持默认位置。
+    }
   }
 
   function createSdkOptions() {
@@ -143,9 +252,6 @@
           if (value >= 100) {
             sdkReady = true;
             retryCount = 0;
-            if (fallbackImage) {
-              fallbackImage.style.display = "none";
-            }
             setLabel("数字人助手");
           } else {
             setLabel("数字人加载中 " + value + "%");
@@ -254,10 +360,12 @@
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       buildFloat();
+      loadFloatPosition();
       start();
     });
   } else {
     buildFloat();
+    loadFloatPosition();
     start();
   }
 

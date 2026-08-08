@@ -649,12 +649,46 @@
     var ui = getUI();
     ui.panel.hidden = !ui.panel.hidden;
     if (!ui.panel.hidden) {
+      syncPanelToFloat(ui);
       ui.question.focus();
     }
   }
 
+  /* 数字人被拖动后，让聊天面板跟随到数字人旁边弹出。 */
+  function syncPanelToFloat(ui) {
+    var floatRoot = document.querySelector(".digital-human-float");
+    // 只有数字人被拖动过（有内联 left 位置）时才跟随；
+    // 未拖动时面板保持默认位置。
+    if (!floatRoot || !floatRoot.style.left) {
+      return;
+    }
+    var floatRect = floatRoot.getBoundingClientRect();
+    var panelWidth = ui.panel.offsetWidth || 420;
+    var panelHeight = ui.panel.offsetHeight || 400;
+    var viewportWidth = window.innerWidth;
+    var viewportHeight = window.innerHeight;
+    var gap = 12;
+    var left = floatRect.right - panelWidth;
+    left = Math.min(Math.max(left, 8), Math.max(viewportWidth - panelWidth - 8, 8));
+    var desiredBottom = viewportHeight - floatRect.top + gap;
+    var maxBottom = viewportHeight - 8 - panelHeight;
+    var bottom = Math.min(desiredBottom, maxBottom);
+    ui.root.style.left = left + "px";
+    ui.root.style.right = "auto";
+    ui.root.style.bottom = Math.max(bottom, 8) + "px";
+  }
+
+  /* 数字人拖动结束后，若面板已打开则同步位置。 */
+  function syncPanel() {
+    var ui = getUI();
+    if (!ui.panel.hidden) {
+      syncPanelToFloat(ui);
+    }
+  }
+
   window.tbeaAssistant = {
-    togglePanel: togglePanel
+    togglePanel: togglePanel,
+    syncPanel: syncPanel
   };
 
   /* 页面加载完成后初始化，避免影响既有脚本。 */

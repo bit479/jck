@@ -729,10 +729,15 @@ button,
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
-  touch-action: manipulation;
+  cursor: grab;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* 拖动数字人时显示抓取光标。 */
+.digital-human-float.is-dragging {
+  cursor: grabbing;
 }
 
 /* 导览页右下角有轮播箭头，数字人临时移到左下角避免遮挡。 */
@@ -775,17 +780,6 @@ body:has(.page--guide.is-active) .digital-human-float {
 .digital-human-sdk canvas,
 .digital-human-sdk video {
   display: block;
-}
-
-/* 数字人未就绪或环境不支持时，显示静态机器人头像（完整显示不裁切）。 */
-.digital-human-float__fallback {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: 6px;
-  pointer-events: none;
 }
 
 .digital-human-float__label {
