@@ -412,15 +412,18 @@
 
   /* ==================== 流式朗读（边输出边读） ==================== */
   var liveSpeech = {
-    first: true,  // 是否还没朗读过任何句子
-    ended: false, // 是否已发出结束标记
-    buffer: ""    // 尚未成句、等待朗读的文字
+    first: true,    // 是否还没朗读过任何内容
+    ended: false,   // 是否已发出结束标记
+    buffer: "",     // 已生成但还没送去朗读的文字
+    lastSendAt: 0   // 上次送去朗读的时间
   };
 
-  /* 单段朗读的最大长度：段太长会等太久才开口，导致声音断续。 */
-  var speechChunkMax = 24;
-  /* 在这些字符处优先切段（停顿自然，朗读更连贯）。 */
-  var speechPunct = "。！？…!?；;\n，,、：:";
+  /* 攒够这么多字再送去朗读，保证数字人一次有足够音频，避免断句卡顿。 */
+  var speechBatchMin = 60;
+  /* 单次最多送这么多字，保证仍然是“边生成边朗读”。 */
+  var speechBatchMax = 100;
+  /* 即使没攒够，超过这个时间也要送一次，避免迟迟不开口。 */
+  var speechBatchTimeout = 4000;
 
   function isDigitalHumanActive() {
     return !!(window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive());
@@ -431,48 +434,54 @@
     liveSpeech.first = true;
     liveSpeech.ended = false;
     liveSpeech.buffer = "";
+    liveSpeech.lastSendAt = Date.now();
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
   }
 
-  /* 把文本切成适合连续朗读的小段：
-     优先在标点处切，单段超过上限且无标点时硬切，避免间隔过长。 */
-  function extractSpeechChunks(text) {
-    var chunks = [];
-    var rest = text;
-    while (rest.length > 0) {
-      var cut = 0;
-      var limit = Math.min(rest.length, speechChunkMax);
-      for (var i = 0; i < limit; i++) {
-        if (speechPunct.indexOf(rest.charAt(i)) !== -1) {
-          cut = i + 1;
-        }
-      }
-      if (cut === 0 && rest.length <= speechChunkMax) {
-        break; // 还不够一段，继续等待更多文字
-      }
-      if (cut === 0) {
-        cut = speechChunkMax; // 超长且无标点，直接硬切
-      }
-      chunks.push(rest.slice(0, cut));
-      rest = rest.slice(cut);
-    }
-    return { chunks: chunks, rest: rest };
-  }
-
-  /* 把新收到的文字送入朗读：切好的小段立即朗读，剩余部分留到后面。 */
+  /* 把新收到的文字送入朗读：攒够一段后整段送去，避免段落间卡顿。 */
   function feedLiveSpeech(delta) {
     if (!voiceEnabled) {
       liveSpeech.buffer = "";
       return;
     }
+    var hadBuffer = liveSpeech.buffer.length > 0;
     liveSpeech.buffer += delta || "";
-    var parsed = extractSpeechChunks(liveSpeech.buffer);
-    liveSpeech.buffer = parsed.rest;
-    parsed.chunks.forEach(function (chunk) {
-      speakChunk(chunk, false);
-    });
+    if (!hadBuffer) {
+      // 从第一段文字出现开始计时，避免把等待接口响应的时间也算进去。
+      liveSpeech.lastSendAt = Date.now();
+    }
+    maybeFlushBatch(false);
+  }
+
+  /* 判断是否该把缓冲的文字送去朗读，并把切好的一段交给数字人。 */
+  function maybeFlushBatch(force) {
+    var now = Date.now();
+    var enough = liveSpeech.buffer.length >= speechBatchMin;
+    var timedOut = now - liveSpeech.lastSendAt >= speechBatchTimeout;
+    if (!force && !enough && !timedOut) {
+      return;
+    }
+    if (!liveSpeech.buffer.trim()) {
+      return;
+    }
+    var size = Math.min(liveSpeech.buffer.length, speechBatchMax);
+    var cut = size;
+    // 尽量在句号、换行等自然停顿处切，避免切断词语或数字。
+    for (var i = size - 1; i >= 0; i--) {
+      if ("。！？…!?；;\n".indexOf(liveSpeech.buffer.charAt(i)) !== -1) {
+        cut = i + 1;
+        break;
+      }
+    }
+    if (cut < 20) {
+      cut = size; // 停顿点太靠前，按最大尺寸切
+    }
+    var chunk = liveSpeech.buffer.slice(0, cut);
+    liveSpeech.buffer = liveSpeech.buffer.slice(cut);
+    liveSpeech.lastSendAt = now;
+    speakChunk(chunk, false);
   }
 
   /* 回答结束时：把最后一句读出来并标记结束；
@@ -481,6 +490,7 @@
     if (!voiceEnabled) {
       return;
     }
+    maybeFlushBatch(true);
     if (liveSpeech.buffer.trim()) {
       speakChunk(liveSpeech.buffer.trim(), true);
       liveSpeech.buffer = "";
