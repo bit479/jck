@@ -741,32 +741,32 @@ body:has(.page--guide.is-active) .digital-human-float {
   left: clamp(16px, 2.5vw, 36px);
 }
 
+/* 数字人悬浮头像：无外边框、透明背景，全身完整可见。 */
 .digital-human-float__avatar {
   position: relative;
-  width: 150px;
-  height: 184px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 32%, rgba(0, 58, 143, 0.14), transparent 55%),
-    linear-gradient(145deg, #eef3fa, #d9e6f2);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: 16px;
-  box-shadow: 0 14px 34px rgba(0, 45, 111, 0.35);
+  width: 170px;
+  height: 210px;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
+/* 去掉旧版头像外框的内描边。 */
 .digital-human-float__avatar::after {
-  position: absolute;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  border: 1px solid rgba(0, 58, 143, 0.18);
-  border-radius: 14px;
+  display: none;
 }
 
-/* SDK 渲染容器：占满悬浮窗头像区域。 */
+/* SDK 渲染容器：必须撑满头像区域。
+   注意：SDK 会给容器写入 position:relative 内联样式，
+   若不加 !important，容器高度会塌陷为 0，数字人看不见。 */
 .digital-human-sdk {
-  position: absolute;
-  inset: 0;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .digital-human-sdk canvas,
@@ -774,13 +774,14 @@ body:has(.page--guide.is-active) .digital-human-float {
   display: block;
 }
 
-/* 数字人未就绪或环境不支持时，显示静态机器人头像。 */
+/* 数字人未就绪或环境不支持时，显示静态机器人头像（完整显示不裁切）。 */
 .digital-human-float__fallback {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 6px;
   pointer-events: none;
 }
 
@@ -5321,33 +5322,69 @@ body:has(.page--guide.is-active) .llm-assistant {
 
 .llm-assistant__panel {
   display: flex;
-  width: min(400px, calc(100vw - 24px));
-  max-height: min(560px, 72vh);
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(600px, 74vh);
   overflow: hidden;
   flex-direction: column;
   background: #ffffff;
-  border: 1px solid rgba(0, 58, 143, 0.24);
-  border-radius: 12px;
-  box-shadow: 0 24px 60px rgba(3, 21, 43, 0.28);
+  border: 1px solid rgba(0, 58, 143, 0.16);
+  border-radius: 18px;
+  box-shadow:
+    0 20px 50px rgba(3, 21, 43, 0.32),
+    0 2px 8px rgba(3, 21, 43, 0.12);
+  animation: llm-panel-in 0.25s ease-out both;
 }
 
 .llm-assistant__panel[hidden] {
   display: none;
 }
 
+@keyframes llm-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 系统开启“减少动态效果”时，聊天面板不再做弹出动画。 */
+@media (prefers-reduced-motion: reduce) {
+  .llm-assistant__panel {
+    animation: none;
+  }
+}
+
 .llm-assistant__header {
   display: flex;
-  min-height: 52px;
-  padding: 8px 10px 8px 16px;
+  min-height: 58px;
+  padding: 10px 12px 10px 14px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   color: #ffffff;
   background: linear-gradient(135deg, #003a8f, #1857b2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 标题前的数字人小圆标，让头部更精致。 */
+.llm-assistant__header::before {
+  content: "";
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #8fdcff, #1857b2 62%, #003a8f);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .llm-assistant__header strong {
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
   letter-spacing: 0.06em;
 }
 
@@ -5359,15 +5396,16 @@ body:has(.page--guide.is-active) .llm-assistant {
 
 .llm-assistant__voice-toggle,
 .llm-assistant__close {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   color: #ffffff;
   cursor: pointer;
   touch-action: manipulation;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 6px;
+  border-radius: 9px;
   font-size: 12px;
+  transition: background 0.15s ease;
 }
 
 .llm-assistant__voice-toggle:hover,
@@ -5378,7 +5416,7 @@ body:has(.page--guide.is-active) .llm-assistant {
 }
 
 .llm-assistant__close {
-  width: 40px;
+  width: 44px;
   padding: 0;
   font-size: 20px;
   line-height: 1;
@@ -5386,11 +5424,13 @@ body:has(.page--guide.is-active) .llm-assistant {
 
 .llm-assistant__messages {
   min-height: 160px;
-  padding: 14px;
+  padding: 16px 14px;
   overflow-y: auto;
   flex: 1 1 auto;
   overscroll-behavior: contain;
-  background: #eef4fb;
+  background: #f2f6fc;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 58, 143, 0.35) transparent;
 }
 
 .llm-assistant__message {
@@ -5407,31 +5447,33 @@ body:has(.page--guide.is-active) .llm-assistant {
 }
 
 .llm-assistant__bubble {
-  max-width: 86%;
-  padding: 9px 12px;
-  border-radius: 10px;
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 14px;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
+  box-shadow: 0 2px 6px rgba(3, 21, 43, 0.08);
 }
 
 .llm-assistant__message--user .llm-assistant__bubble {
   color: #ffffff;
-  background: #003a8f;
-  border-bottom-right-radius: 3px;
+  background: linear-gradient(135deg, #0a5bc0, #003a8f);
+  border-bottom-right-radius: 4px;
 }
 
 .llm-assistant__message--assistant .llm-assistant__bubble {
   color: var(--color-text);
   background: #ffffff;
-  border: 1px solid rgba(0, 58, 143, 0.18);
-  border-bottom-left-radius: 3px;
+  border: 1px solid rgba(0, 58, 143, 0.14);
+  border-bottom-left-radius: 4px;
 }
 
 .llm-assistant__status {
   margin: 0;
-  padding: 6px 14px;
+  padding: 8px 16px;
+  text-align: center;
   color: var(--color-text-muted);
   background: #ffffff;
   border-top: 1px solid rgba(0, 58, 143, 0.1);
@@ -5444,7 +5486,7 @@ body:has(.page--guide.is-active) .llm-assistant {
 
 .llm-assistant__input {
   display: flex;
-  padding: 10px;
+  padding: 12px;
   align-items: center;
   gap: 8px;
   background: #ffffff;
@@ -5454,30 +5496,32 @@ body:has(.page--guide.is-active) .llm-assistant {
 .llm-assistant__question {
   min-width: 0;
   min-height: 48px;
-  padding: 0 12px;
+  padding: 0 14px;
   flex: 1 1 auto;
   color: var(--color-text);
-  background: #f4f8fd;
-  border: 1px solid rgba(0, 58, 143, 0.28);
-  border-radius: 8px;
+  background: #f2f7fd;
+  border: 1px solid rgba(0, 58, 143, 0.24);
+  border-radius: 12px;
   font-size: 14px;
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .llm-assistant__question:focus {
   border-color: var(--color-highlight);
-  box-shadow: 0 0 0 2px rgba(24, 87, 178, 0.2);
+  box-shadow: 0 0 0 3px rgba(24, 87, 178, 0.18);
 }
 
 .llm-assistant__mic,
 .llm-assistant__send {
   min-height: 48px;
-  padding: 0 14px;
+  padding: 0 16px;
   cursor: pointer;
   touch-action: manipulation;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 15px;
   white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .llm-assistant__mic {
@@ -5495,13 +5539,15 @@ body:has(.page--guide.is-active) .llm-assistant {
 
 .llm-assistant__send {
   color: #ffffff;
-  background: #003a8f;
-  border: 1px solid #003a8f;
+  background: linear-gradient(135deg, #0a5bc0, #003a8f);
+  border: 1px solid #0a4fae;
+  box-shadow: 0 4px 12px rgba(0, 58, 143, 0.28);
 }
 
 .llm-assistant__send:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+  box-shadow: none;
 }
 
 .llm-assistant__mic:hover,
@@ -5511,8 +5557,9 @@ body:has(.page--guide.is-active) .llm-assistant {
 
 .llm-assistant__send:hover,
 .llm-assistant__send:focus-visible {
-  background: #1857b2;
+  background: linear-gradient(135deg, #186ac9, #1857b2);
   border-color: #1857b2;
+  box-shadow: 0 6px 16px rgba(24, 87, 178, 0.34);
 }
 
 @keyframes llm-mic-pulse {
@@ -6910,37 +6957,47 @@ body.has-open-tech-platform {
 }
 
 /* ---- 数字人浮窗与 AI 助手 ---- */
+/* 数字人头像保持无边框透明，与浅色主题一致。 */
 .digital-human-float__avatar {
-  background:
-    radial-gradient(circle at 50% 32%, rgba(0, 174, 239, 0.16), transparent 55%),
-    linear-gradient(145deg, #0a2a4a, #061f3b);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .llm-assistant__panel {
   background: #0a2440;
-  border-color: rgba(0, 174, 239, 0.3);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  border-color: rgba(0, 174, 239, 0.26);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .llm-assistant__header {
   background: linear-gradient(135deg, #062a52, #0a4a7a);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.llm-assistant__header::before {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .llm-assistant__messages {
   background: #071b33;
+  scrollbar-color: rgba(39, 225, 255, 0.35) transparent;
 }
 
 .llm-assistant__message--user .llm-assistant__bubble {
   color: #ffffff;
-  background: linear-gradient(135deg, #0072bc, #00579e);
+  background: linear-gradient(135deg, #0084cf, #00579e);
 }
 
 .llm-assistant__message--assistant .llm-assistant__bubble {
   color: var(--color-text);
   background: #0e2a4a;
-  border-color: rgba(0, 174, 239, 0.24);
+  border-color: rgba(0, 174, 239, 0.22);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .llm-assistant__status {
@@ -6966,7 +7023,7 @@ body.has-open-tech-platform {
 
 .llm-assistant__question:focus {
   border-color: var(--color-highlight);
-  box-shadow: 0 0 0 2px rgba(39, 225, 255, 0.24);
+  box-shadow: 0 0 0 3px rgba(39, 225, 255, 0.22);
 }
 
 .llm-assistant__mic {
@@ -6979,12 +7036,14 @@ body.has-open-tech-platform {
   color: #ffffff;
   background: linear-gradient(135deg, #0072bc, #00579e);
   border-color: #00579e;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .llm-assistant__send:hover,
 .llm-assistant__send:focus-visible {
   background: #0a6fc0;
   border-color: #0a6fc0;
+  box-shadow: 0 6px 16px rgba(0, 122, 204, 0.35);
 }
 
 /* ---- 科技平台全屏加载层：保持深色 ---- */
