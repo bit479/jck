@@ -410,19 +410,176 @@
     window.speechSynthesis.speak(utterance);
   }
 
-  /* ==================== 朗读（回答完成后整段朗读，保证连续不中断） ==================== */
+  /* ==================== 朗读（攒一小段就开始，读完一段再读下一段） ==================== */
+  var speechQueue = [];       // 待朗读的整段文本
+  var speechBuffer = "";      // 已生成但还没切段的文字
+  var speechFed = false;      // 是否收到过流式文字
+  var speechLastSendAt = 0;   // 上次切段时间
+  var speechChunkStartAt = 0; // 上次开始朗读的时间
+  var speechWatchdog = null;  // 轮询数字人是否读完当前段的定时器
+  /* 攒够这么多字就送去朗读，保证开口快；单段足够长，保证读起来连续。 */
+  var speechMinChars = 50;
+  var speechMaxChars = 120;
+  var speechTimeout = 4000;
+
   function isDigitalHumanActive() {
     return !!(window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive());
   }
 
-  /* 新问题开始时：停止上一次朗读。 */
+  /* 新问题开始时：停止上一次朗读，清空待读队列。 */
   function resetLiveSpeech() {
+    speechQueue = [];
+    speechBuffer = "";
+    speechFed = false;
+    speechLastSendAt = 0;
+    speechChunkStartAt = 0;
+    stopSpeechWatchdog();
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
   }
 
-  /* 整段朗读一次：数字人一次性合成连续语音，不会出现中断。 */
+  /* 把新收到的文字送入朗读：攒够一段就进队列，让数字人尽快开口。 */
+  function feedLiveSpeech(delta) {
+    if (!voiceEnabled) {
+      speechBuffer = "";
+      return;
+    }
+    speechFed = true;
+    var hadBuffer = speechBuffer.length > 0;
+    speechBuffer += delta || "";
+    if (!hadBuffer) {
+      // 从第一段文字出现开始计时。
+      speechLastSendAt = Date.now();
+    }
+    maybeEnqueueSpeech(false);
+  }
+
+  /* 切出一段文字加入朗读队列，并尝试开始朗读。 */
+  function maybeEnqueueSpeech(force) {
+    if (!speechBuffer.trim()) {
+      return;
+    }
+    var enough = speechBuffer.length >= speechMinChars;
+    var timedOut = Date.now() - speechLastSendAt >= speechTimeout;
+    if (!force && !enough && !timedOut) {
+      return;
+    }
+    var size = Math.min(speechBuffer.length, speechMaxChars);
+    var cut = size;
+    // 尽量在句号、换行等自然停顿处切，避免切断词语或数字。
+    for (var i = size - 1; i >= 0; i--) {
+      if ("。！？…!?；;\n".indexOf(speechBuffer.charAt(i)) !== -1) {
+        cut = i + 1;
+        break;
+      }
+    }
+    if (cut < 20) {
+      cut = size;
+    }
+    speechQueue.push(speechBuffer.slice(0, cut));
+    speechBuffer = speechBuffer.slice(cut);
+    speechLastSendAt = Date.now();
+    pumpSpeechQueue();
+  }
+
+  /* 尝试朗读队列中的下一段：数字人空闲时才读，保证每段完整连续。 */
+  function pumpSpeechQueue() {
+    if (!voiceEnabled) {
+      speechQueue = [];
+      return;
+    }
+    if (speechQueue.length === 0) {
+      return;
+    }
+    // 刚开口不久，先等数字人进入朗读状态，避免连续打断。
+    if (Date.now() - speechChunkStartAt < 2000) {
+      startSpeechWatchdog();
+      return;
+    }
+    var chunk = speechQueue.shift();
+    if (isDigitalHumanActive()) {
+      if (window.tbeaDigitalHuman.isSpeaking && window.tbeaDigitalHuman.isSpeaking()) {
+        speechQueue.unshift(chunk); // 数字人还在朗读，放回队列等它结束
+        startSpeechWatchdog();
+        return;
+      }
+      speechChunkStartAt = Date.now();
+      stopSpeechWatchdog();
+      window.tbeaDigitalHuman.speak(chunk, true, true);
+    } else {
+      speakQueuedText(chunk);
+    }
+  }
+
+  /* 兜底：若数字人漏发“朗读结束”事件，每秒检查一次，读完就继续下一段。 */
+  function startSpeechWatchdog() {
+    if (speechWatchdog) {
+      return;
+    }
+    speechWatchdog = window.setInterval(function () {
+      if (speechQueue.length === 0 || !isDigitalHumanActive()) {
+        stopSpeechWatchdog();
+        return;
+      }
+      if (!window.tbeaDigitalHuman.isSpeaking || !window.tbeaDigitalHuman.isSpeaking()) {
+        stopSpeechWatchdog();
+        pumpSpeechQueue();
+      }
+    }, 1000);
+  }
+
+  function stopSpeechWatchdog() {
+    if (speechWatchdog) {
+      window.clearInterval(speechWatchdog);
+      speechWatchdog = null;
+    }
+  }
+
+  /* 数字人朗读完一段后由 SDK 回调：继续读下一段。 */
+  function onSpeechEnd() {
+    // 忽略刚开口 1 秒内的结束事件（可能是被新朗读打断的旧会话残留）。
+    if (Date.now() - speechChunkStartAt < 1000) {
+      return;
+    }
+    pumpSpeechQueue();
+  }
+
+  /* 回答结束时：把最后一段也送去朗读。 */
+  function finishLiveSpeech() {
+    if (!voiceEnabled) {
+      return;
+    }
+    maybeEnqueueSpeech(true);
+    if (speechBuffer.trim()) {
+      speechQueue.push(speechBuffer.trim());
+      speechBuffer = "";
+      pumpSpeechQueue();
+    }
+  }
+
+  /* 浏览器朗读：逐段排队。 */
+  function speakQueuedText(text) {
+    if (!voiceEnabled || !window.speechSynthesis) {
+      return;
+    }
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "zh-CN";
+    utterance.rate = 1;
+    var voices = window.speechSynthesis.getVoices();
+    var zhVoice = null;
+    voices.forEach(function (voice) {
+      if (!zhVoice && /zh|cmn|chinese/i.test(voice.lang + " " + voice.name)) {
+        zhVoice = voice;
+      }
+    });
+    if (zhVoice) {
+      utterance.voice = zhVoice;
+    }
+    window.speechSynthesis.speak(utterance);
+  }
+
+  /* 旧浏览器无法流式输出时，整段朗读一次。 */
   function speakFullAnswer(text) {
     if (!text || !voiceEnabled) {
       return;
@@ -693,6 +850,7 @@
       fullAnswer += delta;
       answerBubble.textContent = fullAnswer;
       ui.messages.scrollTop = ui.messages.scrollHeight;
+      feedLiveSpeech(delta);
     })
       .then(function (answer) {
         if (!answerBubble) {
@@ -700,8 +858,11 @@
           answerBubble.textContent = answer;
           fullAnswer = answer;
         }
-        /* 文字已快速输出完成，现在整段朗读，保证连续不中断。 */
-        speakFullAnswer(fullAnswer);
+        /* 把最后一段送去朗读；旧浏览器降级时整段朗读一次。 */
+        finishLiveSpeech();
+        if (!speechFed) {
+          speakFullAnswer(fullAnswer);
+        }
         setStatus("");
       })
       .catch(function (error) {
@@ -856,7 +1017,8 @@
 
   window.tbeaAssistant = {
     togglePanel: togglePanel,
-    syncPanel: syncPanel
+    syncPanel: syncPanel,
+    onSpeechEnd: onSpeechEnd
   };
 
   /* 页面加载完成后初始化，避免影响既有脚本。 */

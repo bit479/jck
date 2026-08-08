@@ -24,6 +24,7 @@
   var watchdogTimer = null;
   var dragState = null;
   var suppressClick = false;
+  var speaking = false;
 
   function setLabel(text) {
     if (labelEl) {
@@ -225,6 +226,14 @@
           setLabel("数字人助手");
         }
       },
+      onVoiceStateChange: function (state) {
+        // "start" 开始朗读，"end" 朗读结束。
+        speaking = state === "start";
+        // 一段朗读结束后，通知聊天面板继续朗读下一段。
+        if (state !== "start" && window.tbeaAssistant && window.tbeaAssistant.onSpeechEnd) {
+          window.tbeaAssistant.onSpeechEnd();
+        }
+      },
       onStartSessionWarning: function (message) {
         console.warn("数字人会话警告：", message);
       },
@@ -342,6 +351,9 @@
     start: start,
     speak: speak,
     isActive: isActive,
+    isSpeaking: function () {
+      return speaking;
+    },
     destroy: function () {
       if (sdk) {
         try {
