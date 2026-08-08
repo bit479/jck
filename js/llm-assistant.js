@@ -87,7 +87,16 @@
     micButton.className = "llm-assistant__mic";
     micButton.type = "button";
     micButton.setAttribute("aria-label", "语音提问");
-    micButton.textContent = "🎤";
+    /* 线条风格麦克风图标：颜色跟随按钮文字色，录音时自动变白。 */
+    micButton.innerHTML =
+      '<svg class="llm-assistant__mic-icon" viewBox="0 0 24 24" width="20" height="20" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" ' +
+      'stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>' +
+      '<path d="M19 11v1a7 7 0 0 1-14 0v-1"/>' +
+      '<line x1="12" y1="19" x2="12" y2="22"/>' +
+      '<line x1="8" y1="22" x2="16" y2="22"/>' +
+      "</svg>";
 
     sendButton.id = "llm-assistant-send";
     sendButton.className = "llm-assistant__send";
