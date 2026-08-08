@@ -410,6 +410,117 @@
     window.speechSynthesis.speak(utterance);
   }
 
+  /* ==================== 流式朗读（边输出边读） ==================== */
+  var liveSpeech = {
+    first: true,  // 是否还没朗读过任何句子
+    ended: false, // 是否已发出结束标记
+    buffer: ""    // 尚未成句、等待朗读的文字
+  };
+
+  function isDigitalHumanActive() {
+    return !!(window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive());
+  }
+
+  /* 新问题开始时：停止上一次朗读，重置流式朗读状态。 */
+  function resetLiveSpeech() {
+    liveSpeech.first = true;
+    liveSpeech.ended = false;
+    liveSpeech.buffer = "";
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  /* 按句子结束符切分文本，返回完整句子列表和剩余未成句部分。 */
+  function extractSentences(text) {
+    var list = [];
+    var start = 0;
+    for (var i = 0; i < text.length; i++) {
+      if ("。！？…!?；;\n".indexOf(text.charAt(i)) !== -1) {
+        list.push(text.slice(start, i + 1));
+        start = i + 1;
+      }
+    }
+    return { list: list, rest: text.slice(start) };
+  }
+
+  /* 把新收到的文字送入朗读：完整句子立即朗读，未成句的留到后面。 */
+  function feedLiveSpeech(delta) {
+    if (!voiceEnabled) {
+      liveSpeech.buffer = "";
+      return;
+    }
+    liveSpeech.buffer += delta || "";
+    var parsed = extractSentences(liveSpeech.buffer);
+    liveSpeech.buffer = parsed.rest;
+    parsed.list.forEach(function (sentence) {
+      speakSentence(sentence, false);
+    });
+  }
+
+  /* 回答结束时：把最后一句读出来并标记结束；
+     若最后一句已在流式过程中读完，则补发空结束标记让数字人正常收尾。 */
+  function finishLiveSpeech() {
+    if (!voiceEnabled) {
+      return;
+    }
+    if (liveSpeech.buffer.trim()) {
+      speakSentence(liveSpeech.buffer.trim(), true);
+      liveSpeech.buffer = "";
+    } else if (!liveSpeech.ended && !liveSpeech.first && isDigitalHumanActive()) {
+      window.tbeaDigitalHuman.speak("", false, true);
+      liveSpeech.ended = true;
+    }
+  }
+
+  /* 朗读一个完整句子：数字人支持分段朗读，浏览器则逐句排队。 */
+  function speakSentence(sentence, isLast) {
+    if (!sentence) {
+      return;
+    }
+    if (isDigitalHumanActive()) {
+      // 数字人：第一段 is_start=true，最后一段 is_end=true，中间连续朗读。
+      window.tbeaDigitalHuman.speak(sentence, liveSpeech.first, isLast);
+      liveSpeech.first = false;
+      liveSpeech.ended = isLast;
+    } else {
+      speakQueued(sentence);
+    }
+  }
+
+  /* 浏览器朗读：逐句排队，不打断前面正在读的句子。 */
+  function speakQueued(text) {
+    if (!voiceEnabled || !window.speechSynthesis) {
+      return;
+    }
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "zh-CN";
+    utterance.rate = 1;
+    var voices = window.speechSynthesis.getVoices();
+    var zhVoice = null;
+    voices.forEach(function (voice) {
+      if (!zhVoice && /zh|cmn|chinese/i.test(voice.lang + " " + voice.name)) {
+        zhVoice = voice;
+      }
+    });
+    if (zhVoice) {
+      utterance.voice = zhVoice;
+    }
+    window.speechSynthesis.speak(utterance);
+  }
+
+  /* 非流式降级时，整段朗读一次。 */
+  function speakFullAnswer(text) {
+    if (!text || !voiceEnabled) {
+      return;
+    }
+    if (isDigitalHumanActive()) {
+      window.tbeaDigitalHuman.speak(text, true, true);
+    } else {
+      speakText(text);
+    }
+  }
+
   /* ==================== 语音识别（硅基流动 SenseVoiceSmall） ==================== */
   function getAsrConfig() {
     var config = typeof llmConfig !== "undefined" ? llmConfig : null;
@@ -656,6 +767,7 @@
     waiting = true;
     ui.sendButton.disabled = true;
     setStatus("正在思考…");
+    resetLiveSpeech();
 
     var answerBubble = null;
     var fullAnswer = "";
@@ -668,18 +780,18 @@
       fullAnswer += delta;
       answerBubble.textContent = fullAnswer;
       ui.messages.scrollTop = ui.messages.scrollHeight;
+      feedLiveSpeech(delta);
     })
       .then(function (answer) {
         if (!answerBubble) {
           answerBubble = appendAssistantBubble();
+          answerBubble.textContent = answer;
+          fullAnswer = answer;
         }
-        answerBubble.textContent = answer;
-        fullAnswer = answer;
-        /* 数字人已启动时由数字人播报回答，避免与浏览器朗读重复出声。 */
-        if (window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive()) {
-          window.tbeaDigitalHuman.speak(fullAnswer);
-        } else {
-          speakText(fullAnswer);
+        /* 收尾朗读；若从未流式朗读过（旧浏览器降级），则整段朗读一次。 */
+        finishLiveSpeech();
+        if (liveSpeech.first) {
+          speakFullAnswer(fullAnswer);
         }
         setStatus("");
       })
@@ -689,6 +801,7 @@
           (error && error.message ? error.message : "未知错误") +
           "。请检查网络、密钥和余额。";
         appendMessage(message, "assistant");
+        resetLiveSpeech();
         setStatus("");
       })
       .finally(function () {
