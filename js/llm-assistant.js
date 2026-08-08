@@ -221,8 +221,8 @@
     return parts.join("\n");
   }
 
-  /* ==================== 大模型问答 ==================== */
-  function askLlm(questionText) {
+  /* ==================== 大模型问答（流式输出） ==================== */
+  function askLlm(questionText, onDelta) {
     var config = typeof llmConfig !== "undefined" ? llmConfig : null;
     if (!config || !config.apiKey || !config.endpoint) {
       return Promise.reject(
@@ -237,54 +237,132 @@
       context +
       "\n===== 网页资料结束 =====";
 
-    return fetch(config.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + config.apiKey
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: questionText }
-        ],
-        max_tokens: config.maxTokens,
-        stream: false
-      })
-    })
+    var messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: questionText }
+    ];
+
+    function request(stream) {
+      return fetch(config.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + config.apiKey
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: messages,
+          max_tokens: config.maxTokens,
+          stream: stream
+        })
+      });
+    }
+
+    function parseError(response) {
+      return response
+        .json()
+        .then(function (errorData) {
+          var message =
+            errorData && errorData.error && errorData.error.message
+              ? errorData.error.message
+              : "接口返回错误 " + response.status;
+          throw new Error(message);
+        })
+        .catch(function (parseError) {
+          if (parseError instanceof Error) {
+            throw parseError;
+          }
+          throw new Error("接口返回错误 " + response.status);
+        });
+    }
+
+    return request(true)
       .then(function (response) {
         if (!response.ok) {
-          return response
-            .json()
-            .then(function (errorData) {
-              var message =
-                errorData &&
-                errorData.error &&
-                errorData.error.message
-                  ? errorData.error.message
-                  : "接口返回错误 " + response.status;
-              throw new Error(message);
-            })
-            .catch(function (parseError) {
-              if (parseError instanceof Error) {
-                throw parseError;
+          return parseError(response);
+        }
+        // 浏览器不支持流式读取时，降级为一次性获取完整回答。
+        if (!response.body || !response.body.getReader) {
+          return request(false)
+            .then(function (plainResponse) {
+              if (!plainResponse.ok) {
+                return parseError(plainResponse);
               }
-              throw new Error("接口返回错误 " + response.status);
+              return plainResponse.json();
+            })
+            .then(function (json) {
+              var choice = json && json.choices && json.choices[0];
+              var message = choice && choice.message;
+              return message && message.content ? message.content.trim() : "";
             });
         }
-        return response.json();
+        return readStreamResponse(response, onDelta);
       })
-      .then(function (json) {
-        var choice = json && json.choices && json.choices[0];
-        var message = choice && choice.message;
-        var answer =
-          message && message.content ? message.content.trim() : "";
-        if (!answer) {
-          answer = "抱歉，没有获取到回答内容，请重试。";
-        }
-        return answer;
+      .then(function (answer) {
+        return answer || "抱歉，没有获取到回答内容，请重试。";
       });
+  }
+
+  /* 读取流式响应（SSE），把增量文字交给 onDelta 实时显示。 */
+  function readStreamResponse(response, onDelta) {
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder("utf-8");
+    var buffer = "";
+    var fullText = "";
+
+    function consume(text) {
+      buffer += text;
+      var lines = buffer.split("\n");
+      buffer = lines.pop();
+      lines.forEach(function (line) {
+        var trimmed = line.trim();
+        if (!trimmed || trimmed.indexOf("data:") !== 0) {
+          return;
+        }
+        var payload = trimmed.slice(5).trim();
+        if (payload === "[DONE]") {
+          return;
+        }
+        var json;
+        try {
+          json = JSON.parse(payload);
+        } catch (error) {
+          return;
+        }
+        if (json.error) {
+          throw new Error(json.error.message || "接口返回错误");
+        }
+        var delta =
+          json.choices &&
+          json.choices[0] &&
+          json.choices[0].delta &&
+          json.choices[0].delta.content;
+        if (typeof delta === "string" && delta) {
+          fullText += delta;
+          if (onDelta) {
+            onDelta(delta);
+          }
+        }
+      });
+    }
+
+    return new Promise(function (resolve, reject) {
+      function pump() {
+        reader
+          .read()
+          .then(function (result) {
+            if (result.done) {
+              consume("");
+              resolve(fullText);
+              return;
+            }
+            consume(decoder.decode(result.value, { stream: true }));
+            pump();
+          })
+          .catch(reject);
+      }
+      pump();
+    });
   }
 
   /* ==================== 消息展示与朗读 ==================== */
@@ -579,14 +657,29 @@
     ui.sendButton.disabled = true;
     setStatus("正在思考…");
 
-    askLlm(questionText)
+    var answerBubble = null;
+    var fullAnswer = "";
+
+    askLlm(questionText, function (delta) {
+      if (!answerBubble) {
+        answerBubble = appendAssistantBubble();
+        setStatus("");
+      }
+      fullAnswer += delta;
+      answerBubble.textContent = fullAnswer;
+      ui.messages.scrollTop = ui.messages.scrollHeight;
+    })
       .then(function (answer) {
-        appendMessage(answer, "assistant");
+        if (!answerBubble) {
+          answerBubble = appendAssistantBubble();
+        }
+        answerBubble.textContent = answer;
+        fullAnswer = answer;
         /* 数字人已启动时由数字人播报回答，避免与浏览器朗读重复出声。 */
         if (window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive()) {
-          window.tbeaDigitalHuman.speak(answer);
+          window.tbeaDigitalHuman.speak(fullAnswer);
         } else {
-          speakText(answer);
+          speakText(fullAnswer);
         }
         setStatus("");
       })
@@ -603,6 +696,19 @@
         ui.sendButton.disabled = false;
         ui.question.focus();
       });
+  }
+
+  /* 创建一个空的助手消息气泡，供流式回答逐字填充。 */
+  function appendAssistantBubble() {
+    var ui = getUI();
+    var row = document.createElement("div");
+    var bubble = document.createElement("div");
+    row.className = "llm-assistant__message llm-assistant__message--assistant";
+    bubble.className = "llm-assistant__bubble";
+    row.appendChild(bubble);
+    ui.messages.appendChild(row);
+    ui.messages.scrollTop = ui.messages.scrollHeight;
+    return bubble;
   }
 
   /* ==================== 事件绑定 ==================== */
