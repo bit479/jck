@@ -1285,29 +1285,28 @@ document.addEventListener("DOMContentLoaded", function () {
       return [];
     }
 
-    const cards = [
-      {
-        id: "mining-summary",
-        type: "summary",
-        title: miningData.summaryCardTitle || "金矿项目成果总览",
-        metrics: Array.isArray(miningData.summaryMetrics)
-          ? miningData.summaryMetrics
-          : [],
-        focusAreas: Array.isArray(miningData.focusAreas)
-          ? miningData.focusAreas
-          : []
-      }
-    ];
+    const cards = [];
 
-    if (Array.isArray(miningData.projects)) {
-      miningData.projects.forEach(function (project) {
-        cards.push({
-          id: project.id || "mining-project-" + cards.length,
-          type: "project",
-          project: project
-        });
+    // 两座金矿并列展示，作为轮播第一屏。
+    if (Array.isArray(miningData.projects) && miningData.projects.length > 0) {
+      cards.push({
+        id: "mining-project-pair",
+        type: "projectPair",
+        projects: miningData.projects
       });
     }
+
+    cards.push({
+      id: "mining-summary",
+      type: "summary",
+      title: miningData.summaryCardTitle || "金矿项目成果总览",
+      metrics: Array.isArray(miningData.summaryMetrics)
+        ? miningData.summaryMetrics
+        : [],
+      focusAreas: Array.isArray(miningData.focusAreas)
+        ? miningData.focusAreas
+        : []
+    });
 
     if (miningData.mapPanel) {
       cards.push({
@@ -1433,6 +1432,37 @@ document.addEventListener("DOMContentLoaded", function () {
    * 渲染塔吉克斯坦局部地图卡片。
    * 底图继续使用真实世界国界 SVG；无正式矿区坐标时只显示数据中的示意位置。
    */
+  /** 渲染两座金矿并列展示卡片。 */
+  function createMiningProjectPairContent(projects) {
+    const fragment = document.createDocumentFragment();
+    const pair = document.createElement("div");
+
+    pair.className = "mining-project-pair";
+    pair.classList.toggle(
+      "mining-project-pair--single",
+      projects.length === 1
+    );
+
+    projects.forEach(function (project, index) {
+      const mine = document.createElement("article");
+      const content = createMiningProjectContent(project);
+      const header = content.querySelector(".mining-data-card__header");
+      const eyebrow =
+        header && header.querySelector(".mining-data-card__eyebrow");
+
+      mine.className = "mining-mine-card";
+      if (eyebrow) {
+        eyebrow.textContent =
+          "GOLD MINE " + String(index + 1).padStart(2, "0");
+      }
+      mine.appendChild(content);
+      pair.appendChild(mine);
+    });
+
+    fragment.appendChild(pair);
+    return fragment;
+  }
+
   function createMiningMapContent(mapPanel) {
     const svgNamespace = "http://www.w3.org/2000/svg";
     const fragment = document.createDocumentFragment();
@@ -1809,6 +1839,10 @@ document.addEventListener("DOMContentLoaded", function () {
       "mining-data-card--map",
       cardData.type === "map"
     );
+    cardElement.classList.toggle(
+      "mining-data-card--pair",
+      cardData.type === "projectPair"
+    );
 
     if (!body) {
       return;
@@ -1820,6 +1854,8 @@ document.addEventListener("DOMContentLoaded", function () {
       body.appendChild(createMiningSummaryContent(cardData));
     } else if (cardData.type === "project") {
       body.appendChild(createMiningProjectContent(cardData.project || {}));
+    } else if (cardData.type === "projectPair") {
+      body.appendChild(createMiningProjectPairContent(cardData.projects || []));
     } else if (cardData.type === "map") {
       body.appendChild(createMiningMapContent(cardData.mapPanel || {}));
     } else if (cardData.type === "video") {
@@ -1891,11 +1927,18 @@ document.addEventListener("DOMContentLoaded", function () {
     if (miningCarouselViewport) {
       const activeCard = cards[miningCarouselIndex];
       const activeTitle =
-        activeCard.type === "project"
-          ? activeCard.project.name
-          : activeCard.type === "map"
-            ? activeCard.mapPanel.title
-            : activeCard.title;
+        activeCard.type === "projectPair"
+          ? "双矿并列：" +
+            (activeCard.projects || [])
+              .map(function (project) {
+                return project.name;
+              })
+              .join("、")
+          : activeCard.type === "project"
+            ? activeCard.project.name
+            : activeCard.type === "map"
+              ? activeCard.mapPanel.title
+              : activeCard.title;
       miningCarouselViewport.setAttribute(
         "aria-label",
         "当前矿业卡片：" + (activeTitle || "内容待补充")
@@ -2075,11 +2118,13 @@ document.addEventListener("DOMContentLoaded", function () {
     cards.forEach(function (cardData, index) {
       const dot = document.createElement("button");
       const dotTitle =
-        cardData.type === "project"
-          ? cardData.project.name
-          : cardData.type === "map"
-            ? cardData.mapPanel.title
-            : cardData.title;
+        cardData.type === "projectPair"
+          ? "双矿并列"
+          : cardData.type === "project"
+            ? cardData.project.name
+            : cardData.type === "map"
+              ? cardData.mapPanel.title
+              : cardData.title;
       dot.type = "button";
       dot.className = "mining-carousel__dot";
       dot.dataset.carouselIndex = String(index);
