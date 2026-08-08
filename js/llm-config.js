@@ -12,8 +12,8 @@ const llmConfig = {
   // 接口地址：智谱 AI 兼容 OpenAI 格式，一般不用修改。
   endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   // 密钥：在 https://open.bigmodel.cn 后台“API 密钥”页面获取。
-  // 当前留空，填入智谱密钥后即可使用。
-  apiKey: "",
+  // 已填入智谱密钥，如密钥失效请在后台重新生成后替换。
+  apiKey: "57b97c6d29ab4baca9468df6c36df079.GOU3QIR3MzIaKcUt",
   // 模型：glm-4-flash 为智谱免费模型，适合演示。
   model: "glm-4-flash",
   // 单次回答最大长度（含模型思考内容），不足时可适当调大。
