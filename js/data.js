@@ -209,7 +209,7 @@ const websiteData = {
     sectionIndex: "02 / GLOBAL PROJECTS",
     title: "海外成套项目建设",
     titleEn: "OVERSEAS TURNKEY PROJECTS",
-    description: "此处填写公司海外电力工程、输变电项目及成套项目建设业务概况。",
+    description: "特变电工自1997年成立国际工程业务以来，以输变电和电源建设为核心开展对外经济技术合作，是具备勘测设计、设备供货、土建施工、安装调试及运维服务全流程能力的成套工程总承包商。公司2003年首次在苏丹承接110kV输变电线路成套项目，随后将业务拓展至塔吉克斯坦、吉尔吉斯斯坦、埃塞俄比亚、肯尼亚、赞比亚、坦桑尼亚等国家，先后建成220kV至500kV等级输变电线路、变电站及热电厂等成套项目。其中塔吉克斯坦500kV杜尚别变电站获中国境外工程建设鲁班奖，公司已连续多年入选美国《工程新闻纪录》（ENR）全球最大250家国际承包商，正持续深耕“一带一路”沿线电力基础设施建设。",
     mapImage: "assets/maps/world-map.svg",
     mapAltText: "海外项目建设世界地图",
     mapAriaLabel: "海外项目建设国家节点",
@@ -484,7 +484,7 @@ const websiteData = {
       labelAnchor: "start",
       visible: true,
       image: "assets/images/projects/project-placeholder.jpg",
-      overview: "该国家项目建设成果概览待补充。",
+      overview: "特变电工正积极拓展缅甸电力市场，围绕水电、光伏开发及输变电设备制造等方向开展合作洽谈，具体项目建设成果资料待补充。",
       projects: []
     }
   ],
