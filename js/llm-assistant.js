@@ -3,8 +3,11 @@
  * 支持两种提问方式：
  * 1. 打字提问：输入问题后点“发送”。
  * 2. 语音提问：点麦克风按钮开始录音，再点一次结束并自动识别发送。
- * 大模型会根据 js/data.js 里的网页资料回答，回答默认用语音朗读，
- * 可在面板右上角关闭朗读。
+ * 回答逻辑（两级）：
+ * 1. 站内检索：先在网页资料（js/data.js 或平台页自定义资料）中检索，
+ *    能检索到就直接用网页原文回答，不调用大模型，速度快、不花 token；
+ * 2. 联网搜索：站内检索不到时，再调用智谱 web_search 工具联网搜索回答。
+ * 回答默认用语音朗读，可在面板右上角关闭朗读。
  */
 (function () {
   "use strict";
@@ -221,8 +224,342 @@
     return parts.join("\n");
   }
 
+  /* ==================== 站内检索 ==================== */
+  /* 国家/地区映射：用于回答“公司在非洲有哪些项目”这类跨国家问题。 */
+  var COUNTRY_CONTINENTS = {
+    "塔吉克斯坦": "中亚",
+    "吉尔吉斯斯坦": "中亚",
+    "苏丹": "非洲",
+    "埃塞俄比亚": "非洲",
+    "肯尼亚": "非洲",
+    "赞比亚": "非洲",
+    "坦桑尼亚": "非洲",
+    "缅甸": "东南亚"
+  };
+
+  /* 从问题中提取连续 2 字词（去掉标点和空格），用于文本相似度匹配。 */
+  function extractBigrams(text) {
+    var clean = String(text || "").replace(/[^0-9A-Za-z\u4e00-\u9fff]+/g, "");
+    var grams = [];
+    for (var i = 0; i < clean.length - 1; i++) {
+      grams.push(clean.slice(i, i + 2));
+    }
+    return grams;
+  }
+
+  /* 相似度打分：问题里的 2 字词有多少比例出现在 text 中（0~1）。 */
+  function bigramScore(question, text) {
+    var grams = extractBigrams(question);
+    if (grams.length === 0) {
+      return 0;
+    }
+    var hit = 0;
+    grams.forEach(function (gram) {
+      if (text.indexOf(gram) !== -1) {
+        hit++;
+      }
+    });
+    return hit / grams.length;
+  }
+
+  /* 生成主站资料的检索条目：每一条含若干关键词，命中越多越相关。 */
+  function buildRetrievalIndex() {
+    var data = typeof websiteData !== "undefined" ? websiteData : null;
+    var entries = [];
+    if (!data) {
+      return entries;
+    }
+
+    function addEntry(keys, text, strong) {
+      if (text && text.trim()) {
+        entries.push({ keys: keys, text: text.trim(), strong: !!strong });
+      }
+    }
+
+    if (data.siteInfo) {
+      addEntry(
+        ["特变电工", "进出口", "公司名称"],
+        (data.siteInfo.companyName || "特变电工进出口公司") + "。" +
+          (data.siteInfo.title || "")
+      );
+    }
+
+    if (data.companyProfile) {
+      var profileParts = [];
+      if (Array.isArray(data.companyProfile.paragraphs)) {
+        data.companyProfile.paragraphs.forEach(function (paragraph) {
+          profileParts.push(paragraph);
+        });
+      }
+      addEntry(
+        ["公司简介", "公司介绍", "公司概况", "关于公司", "简介", "介绍", "公司定位", "发展历程", "业务"],
+        profileParts.join("\n")
+      );
+      if (Array.isArray(data.companyProfile.achievements)) {
+        var achievementText = [];
+        data.companyProfile.achievements.forEach(function (achievement) {
+          achievementText.push(
+            (achievement.value || "") +
+              "：" +
+              (achievement.label || "") +
+              "（" +
+              (achievement.description || "") +
+              "）"
+          );
+        });
+        addEntry(
+          ["荣誉", "鲁班奖", "enr", "排名", "获奖", "业绩", "成就", "承包商"],
+          "主要业绩与荣誉：\n" + achievementText.join("\n")
+        );
+      }
+    }
+
+    if (data.overseasProjectsPage && data.overseasProjectsPage.description) {
+      addEntry(
+        ["海外项目", "海外建设", "成套项目", "输变电", "电力工程", "哪些项目"],
+        data.overseasProjectsPage.description
+      );
+    }
+
+    if (Array.isArray(data.overseasProjects)) {
+      data.overseasProjects.forEach(function (country) {
+        var textParts = [];
+        if (country.overview) {
+          textParts.push(country.overview);
+        }
+        if (Array.isArray(country.projects)) {
+          country.projects.forEach(function (project) {
+            if (project.projectName || project.description) {
+              textParts.push(
+                (project.projectName || "项目") + "：" + (project.description || "")
+              );
+            }
+          });
+        }
+        var keys = [country.countryName, country.countryNameEn];
+        if (COUNTRY_CONTINENTS[country.countryName]) {
+          keys.push(COUNTRY_CONTINENTS[country.countryName]);
+        }
+        keys.push(country.countryName + "项目");
+        if (Array.isArray(country.projects)) {
+          country.projects.forEach(function (project) {
+            if (project.projectName) {
+              keys.push(project.projectName);
+            }
+          });
+        }
+        /* strong：国家名直接命中时优先返回该国条目。 */
+        addEntry(keys, textParts.join("\n"), true);
+      });
+    }
+
+    if (data.overseasMining) {
+      var mining = data.overseasMining;
+      var miningText = [];
+      if (mining.overview) {
+        miningText.push(mining.overview);
+      }
+      if (Array.isArray(mining.projects)) {
+        mining.projects.forEach(function (project) {
+          miningText.push(
+            (project.name || "项目") + "：" + (project.description || "")
+          );
+        });
+      }
+      var miningKeys = ["矿业", "金矿", "矿山", "矿产", "采矿"];
+      if (mining.countryName) {
+        miningKeys.push(mining.countryName, mining.countryName + "金矿", mining.countryName + "矿业");
+      }
+      addEntry(miningKeys, miningText.join("\n"));
+    }
+
+    if (Array.isArray(data.futureOutlook)) {
+      var futureText = [];
+      data.futureOutlook.forEach(function (country) {
+        futureText.push((country.countryName || "") + "：" + (country.summary || ""));
+      });
+      addEntry(
+        ["双千亿", "未来展望", "未来规划", "展望", "发展规划", "战略"],
+        futureText.join("\n")
+      );
+    }
+
+    if (data.techEmpowerment && Array.isArray(data.techEmpowerment.cards)) {
+      var techText = [];
+      data.techEmpowerment.cards.forEach(function (card) {
+        techText.push((card.title || "") + "：" + (card.summary || ""));
+      });
+      addEntry(["科技赋能", "平台", "数字化"], techText.join("\n"));
+    }
+
+    return entries;
+  }
+
+  /* 主站资料检索：按关键词命中数排序，返回最相关的网页原文。 */
+  function searchMainSite(question) {
+    var entries = buildRetrievalIndex();
+    var bestScore = 0;
+    var bestTexts = [];
+    var lowerQuestion = question.toLowerCase();
+    entries.forEach(function (entry) {
+      var score = 0;
+      entry.keys.forEach(function (key) {
+        if (key && lowerQuestion.indexOf(String(key).toLowerCase()) !== -1) {
+          score++;
+        }
+      });
+      if (score > 0) {
+        /* 国家条目：问题里直接出现国家名时额外加分，避免被通用描述抢答。 */
+        if (
+          entry.strong &&
+          lowerQuestion.indexOf(String(entry.keys[0]).toLowerCase()) !== -1
+        ) {
+          score++;
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestTexts = [entry.text];
+        } else if (score === bestScore) {
+          bestTexts.push(entry.text);
+        }
+      }
+    });
+    if (bestTexts.length === 0) {
+      return null;
+    }
+    /* 最多合并 3 条，避免回答过长。 */
+    return bestTexts.slice(0, 3).join("\n");
+  }
+
+  /* 平台页自定义资料检索：
+     先按行首的国家名/条目名做精确匹配（如“排名1 智利（…）：”或“- 中国：…”），
+     问题里提到哪个名字就返回哪一行；没有精确匹配时，
+     再对所有行做 2 字词重合度匹配，重合度低视为检索不到（转联网搜索）。 */
+  function searchPlatformContext(question) {
+    if (typeof window.llmPlatformContext !== "function") {
+      return null;
+    }
+    var context = window.llmPlatformContext();
+    if (typeof context !== "string" || !context.trim()) {
+      return null;
+    }
+    var lines = context
+      .split("\n")
+      .map(function (line) {
+        return line.trim();
+      })
+      .filter(function (line) {
+        return line.length > 0;
+      });
+
+    /* 第一优先：问题提到条目名（国家名、项目编号等），直接返回该行。 */
+    var exactHit = null;
+    lines.forEach(function (line) {
+      if (exactHit) {
+        return;
+      }
+      var nameMatch = line.match(/^排名\s*\d+\s*([^\s（(]+)/) ||
+        line.match(/^-\s*([^\s：:]+)\s*[：:]/);
+      if (nameMatch && question.indexOf(nameMatch[1]) !== -1) {
+        exactHit = line;
+      }
+    });
+    if (exactHit) {
+      return exactHit;
+    }
+
+    /* 第二优先：2 字词重合度匹配，要求较高重合度避免答非所问。 */
+    var scored = [];
+    lines.forEach(function (line) {
+      var score = bigramScore(question, line);
+      if (score >= 0.4) {
+        scored.push({ line: line, score: score });
+      }
+    });
+    if (scored.length === 0) {
+      return null;
+    }
+    scored.sort(function (a, b) {
+      return b.score - a.score;
+    });
+    return scored
+      .slice(0, 2)
+      .map(function (item) {
+        return item.line;
+      })
+      .join("\n");
+  }
+
+  /* 站内整体检索：命中返回网页原文，未命中返回 null（将转联网搜索）。 */
+  function searchWebsite(question) {
+    var q = String(question || "").trim();
+    if (!q) {
+      return null;
+    }
+    var data = typeof websiteData !== "undefined" ? websiteData : null;
+    var companyName =
+      data && data.siteInfo && data.siteInfo.companyName
+        ? data.siteInfo.companyName
+        : "特变电工进出口公司";
+
+    /* 常见寒暄：直接应答，不检索也不联网。 */
+    if (/^(你好|您好|hi|hello|嗨|在吗|在么)/i.test(q)) {
+      return (
+        "你好！我是" +
+        companyName +
+        "网站的数字人助手。你可以问我公司简介、海外项目、矿业开发、未来规划等网站内容，例如“公司在塔吉克斯坦有哪些项目？”。"
+      );
+    }
+    if (/你是谁|你叫什么|介绍一下你/.test(q)) {
+      return (
+        "我是" +
+        companyName +
+        "网站的数字人助手，可以基于网站资料回答公司业务相关问题，网站资料里没有的内容我会联网搜索。"
+      );
+    }
+    if (/谢谢|感谢/.test(q)) {
+      return "不客气，有需要随时问我。";
+    }
+    if (/再见|拜拜/.test(q)) {
+      return "再见，欢迎随时回来咨询。";
+    }
+
+    /* 优先平台页自定义资料，再检索主站资料。 */
+    var platformAnswer = searchPlatformContext(q);
+    if (platformAnswer) {
+      return platformAnswer;
+    }
+    var mainAnswer = searchMainSite(q);
+    if (mainAnswer) {
+      return mainAnswer;
+    }
+
+    /* 跨国家汇总类问题兜底：自动整理网页里的国家名单。 */
+    if (
+      /业务覆盖|项目分布|项目覆盖|业务范围|覆盖哪些国家/.test(q) ||
+      /公司.*(哪些国家|在哪些地方|在哪些国家)/.test(q)
+    ) {
+      var countryNames = [];
+      if (data && Array.isArray(data.overseasProjects)) {
+        data.overseasProjects.forEach(function (country) {
+          if (country.countryName) {
+            countryNames.push(country.countryName);
+          }
+        });
+      }
+      if (countryNames.length > 0) {
+        return (
+          "根据网站资料，公司海外成套项目建设业务覆盖：" +
+          countryNames.join("、") +
+          "等国家。"
+        );
+      }
+    }
+    return null;
+  }
+
   /* ==================== 大模型问答（流式输出） ==================== */
-  function askLlm(questionText, onDelta) {
+  function askLlm(questionText, onDelta, useWebSearch) {
     var config = typeof llmConfig !== "undefined" ? llmConfig : null;
     if (!config || !config.apiKey || !config.endpoint) {
       return Promise.reject(
@@ -230,12 +567,40 @@
       );
     }
     var context = buildWebsiteContext();
-    var systemPrompt =
-      "你是「特变电工进出口公司」官方网站的智能助手。请只依据下面提供的网页资料回答用户问题，" +
-      "回答用简体中文，简洁清楚。如果资料里没有相关信息，请如实说明“网页资料中没有相关内容”。\n\n" +
-      "===== 网页资料开始 =====\n" +
-      context +
-      "\n===== 网页资料结束 =====";
+    var systemPrompt;
+    var requestTools = null;
+    if (useWebSearch) {
+      /* 站内检索不到时：启用智谱 web_search 工具联网搜索回答。 */
+      var companyName =
+        typeof websiteData !== "undefined" &&
+        websiteData.siteInfo &&
+        websiteData.siteInfo.companyName
+          ? websiteData.siteInfo.companyName
+          : "特变电工进出口公司";
+      systemPrompt =
+        "你是「" +
+        companyName +
+        "」官方网站的智能助手。用户的问题在网站资料中没有找到相关内容，" +
+        "请你使用联网搜索结果回答，用简体中文简洁回答，并在回答开头注明“该信息来自联网搜索”。" +
+        "如果联网搜索也找不到可靠答案，请如实说明未查到。";
+      requestTools = [
+        {
+          type: "web_search",
+          web_search: {
+            enable: "True",
+            search_result: "True",
+            count: "5"
+          }
+        }
+      ];
+    } else {
+      systemPrompt =
+        "你是「特变电工进出口公司」官方网站的智能助手。请只依据下面提供的网页资料回答用户问题，" +
+        "回答用简体中文，简洁清楚。如果资料里没有相关信息，请如实说明“网页资料中没有相关内容”。\n\n" +
+        "===== 网页资料开始 =====\n" +
+        context +
+        "\n===== 网页资料结束 =====";
+    }
 
     var messages = [
       { role: "system", content: systemPrompt },
@@ -253,7 +618,8 @@
           model: config.model,
           messages: messages,
           max_tokens: config.maxTokens,
-          stream: stream
+          stream: stream,
+          tools: requestTools
         })
       });
     }
@@ -839,19 +1205,38 @@
     setStatus("正在思考…");
     resetLiveSpeech();
 
+    /* 第一步：站内检索。能检索到就直接用网页原文回答，不调用大模型。 */
+    var localAnswer = searchWebsite(questionText);
+    if (localAnswer) {
+      var localBubble = appendAssistantBubble();
+      localBubble.textContent = localAnswer;
+      setStatus("");
+      speakFullAnswer(localAnswer);
+      waiting = false;
+      ui.sendButton.disabled = false;
+      ui.question.focus();
+      return;
+    }
+
+    /* 第二步：站内检索不到，启用联网搜索回答。 */
+    setStatus("网站资料未检索到，正在联网搜索…");
     var answerBubble = null;
     var fullAnswer = "";
 
-    askLlm(questionText, function (delta) {
-      if (!answerBubble) {
-        answerBubble = appendAssistantBubble();
-        setStatus("");
-      }
-      fullAnswer += delta;
-      answerBubble.textContent = fullAnswer;
-      ui.messages.scrollTop = ui.messages.scrollHeight;
-      feedLiveSpeech(delta);
-    })
+    askLlm(
+      questionText,
+      function (delta) {
+        if (!answerBubble) {
+          answerBubble = appendAssistantBubble();
+          setStatus("");
+        }
+        fullAnswer += delta;
+        answerBubble.textContent = fullAnswer;
+        ui.messages.scrollTop = ui.messages.scrollHeight;
+        feedLiveSpeech(delta);
+      },
+      true
+    )
       .then(function (answer) {
         if (!answerBubble) {
           answerBubble = appendAssistantBubble();
