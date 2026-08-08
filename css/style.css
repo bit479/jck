@@ -741,11 +741,12 @@ body:has(.page--guide.is-active) .digital-human-float {
   left: clamp(16px, 2.5vw, 36px);
 }
 
-/* 数字人悬浮头像：无外边框、透明背景，全身完整可见。 */
+/* 数字人悬浮头像：无外边框、透明背景，全身完整可见。
+   340×420 约为原 170×210 的一倍，数字人模型随之放大一倍。 */
 .digital-human-float__avatar {
   position: relative;
-  width: 170px;
-  height: 210px;
+  width: 340px;
+  height: 420px;
   overflow: visible;
   background: transparent;
   border: none;
@@ -767,6 +768,8 @@ body:has(.page--guide.is-active) .digital-human-float {
   left: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  /* SDK 渲染的人物默认偏右，平移回中心，让数字人位于“数字人助手”正上方。 */
+  transform: translateX(-60px) !important;
 }
 
 .digital-human-sdk canvas,
