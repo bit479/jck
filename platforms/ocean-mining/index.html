@@ -147,26 +147,6 @@
 </style>
 </head>
 <body>
-<style>
-.exhibition-return-button{position:fixed;z-index:10000;top:14px;left:14px;display:inline-flex;min-height:48px;padding:0 16px;align-items:center;justify-content:center;color:#fff;cursor:pointer;touch-action:manipulation;background:rgba(3,21,43,.82);border:1px solid rgba(39,225,255,.48);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);font:600 14px/1.2 "Microsoft YaHei",Arial,sans-serif;transition:background-color .16s ease,border-color .16s ease,transform .12s ease}.exhibition-return-button:hover,.exhibition-return-button:focus-visible{background:rgba(6,49,82,.94);border-color:#27e1ff;outline:2px solid rgba(39,225,255,.24);outline-offset:2px}.exhibition-return-button:active{transform:scale(.97)}@media(min-width:701px){.topbar-inner{padding-left:210px!important}}@media(max-width:700px){.exhibition-return-button{top:auto;bottom:14px;left:14px}}@media(prefers-reduced-motion:reduce){.exhibition-return-button{transition:none}.exhibition-return-button:active{transform:none}}
-</style>
-<button id="exhibition-return-button" class="exhibition-return-button" type="button">← 返回科技赋能</button>
-<script>
-(function(){
-  var returnButton=document.getElementById("exhibition-return-button");
-  var fallbackUrl="../../index.html#tech-empowerment";
-  if(!returnButton){return;}
-  returnButton.addEventListener("click",function(){
-    var currentUrl=window.location.href;
-    if(window.history.length>1&&typeof window.history.back==="function"){
-      window.history.back();
-      window.setTimeout(function(){if(window.location.href===currentUrl){window.location.href=fallbackUrl;}},700);
-    }else{
-      window.location.href=fallbackUrl;
-    }
-  });
-})();
-</script>
 <header class="topbar">
 <div class="topbar-inner">
 <div class="brand"><div class="brand-mark">深</div><div><h1>全球海洋采矿项目可视化看板</h1><p>国家 · 海域 · 项目 · 十五五战略 · 特变电工机会 · 系统市场 · 矿权权益</p></div></div>
