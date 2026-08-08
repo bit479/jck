@@ -417,6 +417,11 @@
     buffer: ""    // 尚未成句、等待朗读的文字
   };
 
+  /* 单段朗读的最大长度：段太长会等太久才开口，导致声音断续。 */
+  var speechChunkMax = 24;
+  /* 在这些字符处优先切段（停顿自然，朗读更连贯）。 */
+  var speechPunct = "。！？…!?；;\n，,、：:";
+
   function isDigitalHumanActive() {
     return !!(window.tbeaDigitalHuman && window.tbeaDigitalHuman.isActive());
   }
@@ -431,30 +436,42 @@
     }
   }
 
-  /* 按句子结束符切分文本，返回完整句子列表和剩余未成句部分。 */
-  function extractSentences(text) {
-    var list = [];
-    var start = 0;
-    for (var i = 0; i < text.length; i++) {
-      if ("。！？…!?；;\n".indexOf(text.charAt(i)) !== -1) {
-        list.push(text.slice(start, i + 1));
-        start = i + 1;
+  /* 把文本切成适合连续朗读的小段：
+     优先在标点处切，单段超过上限且无标点时硬切，避免间隔过长。 */
+  function extractSpeechChunks(text) {
+    var chunks = [];
+    var rest = text;
+    while (rest.length > 0) {
+      var cut = 0;
+      var limit = Math.min(rest.length, speechChunkMax);
+      for (var i = 0; i < limit; i++) {
+        if (speechPunct.indexOf(rest.charAt(i)) !== -1) {
+          cut = i + 1;
+        }
       }
+      if (cut === 0 && rest.length <= speechChunkMax) {
+        break; // 还不够一段，继续等待更多文字
+      }
+      if (cut === 0) {
+        cut = speechChunkMax; // 超长且无标点，直接硬切
+      }
+      chunks.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
     }
-    return { list: list, rest: text.slice(start) };
+    return { chunks: chunks, rest: rest };
   }
 
-  /* 把新收到的文字送入朗读：完整句子立即朗读，未成句的留到后面。 */
+  /* 把新收到的文字送入朗读：切好的小段立即朗读，剩余部分留到后面。 */
   function feedLiveSpeech(delta) {
     if (!voiceEnabled) {
       liveSpeech.buffer = "";
       return;
     }
     liveSpeech.buffer += delta || "";
-    var parsed = extractSentences(liveSpeech.buffer);
+    var parsed = extractSpeechChunks(liveSpeech.buffer);
     liveSpeech.buffer = parsed.rest;
-    parsed.list.forEach(function (sentence) {
-      speakSentence(sentence, false);
+    parsed.chunks.forEach(function (chunk) {
+      speakChunk(chunk, false);
     });
   }
 
@@ -465,7 +482,7 @@
       return;
     }
     if (liveSpeech.buffer.trim()) {
-      speakSentence(liveSpeech.buffer.trim(), true);
+      speakChunk(liveSpeech.buffer.trim(), true);
       liveSpeech.buffer = "";
     } else if (!liveSpeech.ended && !liveSpeech.first && isDigitalHumanActive()) {
       window.tbeaDigitalHuman.speak("", false, true);
@@ -473,18 +490,18 @@
     }
   }
 
-  /* 朗读一个完整句子：数字人支持分段朗读，浏览器则逐句排队。 */
-  function speakSentence(sentence, isLast) {
-    if (!sentence) {
+  /* 朗读一小段文字：数字人支持分段朗读，浏览器则逐段排队。 */
+  function speakChunk(chunk, isLast) {
+    if (!chunk) {
       return;
     }
     if (isDigitalHumanActive()) {
       // 数字人：第一段 is_start=true，最后一段 is_end=true，中间连续朗读。
-      window.tbeaDigitalHuman.speak(sentence, liveSpeech.first, isLast);
+      window.tbeaDigitalHuman.speak(chunk, liveSpeech.first, isLast);
       liveSpeech.first = false;
       liveSpeech.ended = isLast;
     } else {
-      speakQueued(sentence);
+      speakQueued(chunk);
     }
   }
 
