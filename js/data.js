@@ -483,9 +483,20 @@ const websiteData = {
       labelOffsetY: -4,
       labelAnchor: "start",
       visible: true,
-      image: "assets/images/projects/project-placeholder.jpg",
-      overview: "特变电工正积极拓展缅甸电力市场，围绕水电、光伏开发及输变电设备制造等方向开展合作洽谈，具体项目建设成果资料待补充。",
-      projects: []
+      image: "assets/images/projects/myanmar.jpg",
+      overview: "特变电工正积极拓展缅甸电力市场。2025年6月，缅甸驻华大使应邀访问特变电工并举行工作会谈；2025年9月，缅甸代总统敏昂莱访华期间专程参观北京特变电工，双方围绕缅甸水电、太阳能发电项目开发、电气设备制造及矿业开发等方向深入洽谈。目前双方合作仍处于洽谈阶段，具体项目建设成果资料待补充。",
+      projects: [
+        {
+          id: "myanmar-project-1",
+          projectName: "缅甸能源合作高层洽谈（2025年9月）",
+          description: "缅甸代总统敏昂莱率高级代表团参观北京特变电工，了解公司全球电力与矿业成套建设能力，并就缅甸水电、太阳能发电项目、电气设备制造及矿业合作等方向进行洽谈。"
+        },
+        {
+          id: "myanmar-project-2",
+          projectName: "缅甸驻华大使访问交流（2025年6月）",
+          description: "缅甸驻华大使应邀赴特变电工考察并举行工作会谈，围绕中缅电力与能源领域合作进行交流，双方表示将继续深化合作对接。"
+        }
+      ]
     }
   ],
 
