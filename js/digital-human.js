@@ -124,6 +124,10 @@
       floatRoot.style.top = dragState.originTop + dy + "px";
       floatRoot.style.right = "auto";
       floatRoot.style.bottom = "auto";
+      // 面板已打开时，让面板跟随数字人实时移动。
+      if (window.tbeaAssistant && window.tbeaAssistant.syncPanel) {
+        window.tbeaAssistant.syncPanel();
+      }
     });
 
     function finishDrag(event) {

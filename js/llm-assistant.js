@@ -654,12 +654,11 @@
     }
   }
 
-  /* 数字人被拖动后，让聊天面板跟随到数字人旁边弹出。 */
+  /* 聊天面板跟随数字人：打开时在数字人旁边弹出，拖动时实时跟随。
+     依次尝试 上方 → 下方 → 右侧 → 左侧，尽量不与数字人模型重叠。 */
   function syncPanelToFloat(ui) {
     var floatRoot = document.querySelector(".digital-human-float");
-    // 只有数字人被拖动过（有内联 left 位置）时才跟随；
-    // 未拖动时面板保持默认位置。
-    if (!floatRoot || !floatRoot.style.left) {
+    if (!floatRoot) {
       return;
     }
     var floatRect = floatRoot.getBoundingClientRect();
@@ -668,17 +667,58 @@
     var viewportWidth = window.innerWidth;
     var viewportHeight = window.innerHeight;
     var gap = 12;
+    var margin = 8;
+
+    // 水平：面板右缘与数字人右缘对齐，并限制在屏幕内。
     var left = floatRect.right - panelWidth;
-    left = Math.min(Math.max(left, 8), Math.max(viewportWidth - panelWidth - 8, 8));
-    var desiredBottom = viewportHeight - floatRect.top + gap;
-    var maxBottom = viewportHeight - 8 - panelHeight;
-    var bottom = Math.min(desiredBottom, maxBottom);
-    ui.root.style.left = left + "px";
-    ui.root.style.right = "auto";
-    ui.root.style.bottom = Math.max(bottom, 8) + "px";
+    left = Math.min(Math.max(left, margin), Math.max(viewportWidth - panelWidth - margin, margin));
+
+    var fitsAbove = floatRect.top - gap - panelHeight >= margin;
+    var fitsBelow = floatRect.bottom + gap + panelHeight <= viewportHeight - margin;
+    var fitsRight = floatRect.right + gap + panelWidth <= viewportWidth - margin;
+    var fitsLeft = floatRect.left - gap - panelWidth >= margin;
+
+    if (fitsAbove) {
+      ui.root.style.left = left + "px";
+      ui.root.style.right = "auto";
+      ui.root.style.top = "auto";
+      ui.root.style.bottom = viewportHeight - floatRect.top + gap + "px";
+    } else if (fitsBelow) {
+      ui.root.style.left = left + "px";
+      ui.root.style.right = "auto";
+      ui.root.style.bottom = "auto";
+      ui.root.style.top = floatRect.bottom + gap + "px";
+    } else if (fitsRight) {
+      // 数字人右侧，面板顶边与数字人顶边对齐。
+      ui.root.style.left = floatRect.right + gap + "px";
+      ui.root.style.right = "auto";
+      ui.root.style.bottom = "auto";
+      ui.root.style.top =
+        Math.min(Math.max(floatRect.top, margin), Math.max(viewportHeight - panelHeight - margin, margin)) +
+        "px";
+    } else if (fitsLeft) {
+      // 数字人左侧，面板顶边与数字人顶边对齐。
+      ui.root.style.left = floatRect.left - gap - panelWidth + "px";
+      ui.root.style.right = "auto";
+      ui.root.style.bottom = "auto";
+      ui.root.style.top =
+        Math.min(Math.max(floatRect.top, margin), Math.max(viewportHeight - panelHeight - margin, margin)) +
+        "px";
+    } else {
+      // 四个方向都放不下时，放在上方并尽量收进屏幕；
+      // 面板层级高于数字人（z-index 1600 > 1500），保证不会被模型遮挡。
+      ui.root.style.left = left + "px";
+      ui.root.style.right = "auto";
+      ui.root.style.top = "auto";
+      ui.root.style.bottom =
+        Math.min(
+          viewportHeight - floatRect.top + gap,
+          viewportHeight - margin - panelHeight
+        ) + "px";
+    }
   }
 
-  /* 数字人拖动结束后，若面板已打开则同步位置。 */
+  /* 数字人拖动过程中，若面板已打开则实时同步位置。 */
   function syncPanel() {
     var ui = getUI();
     if (!ui.panel.hidden) {

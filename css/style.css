@@ -5301,7 +5301,8 @@ h2 {
 /* ==================== 数字人聊天窗口 ==================== */
 .llm-assistant {
   position: fixed;
-  z-index: 1400;
+  /* 层级高于数字人（1500），保证聊天窗口不会被数字人模型遮挡。 */
+  z-index: 1600;
   right: clamp(16px, 2.5vw, 36px);
   bottom: clamp(230px, 26vh, 256px);
   display: flex;
