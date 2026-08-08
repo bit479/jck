@@ -1,14 +1,14 @@
 /* 基础颜色集中定义，后续调整整体风格时可直接修改这里。 */
 :root {
-  --color-background: #f4f6fa;
-  --color-surface: #ffffff;
-  --color-surface-light: #dce9f5;
-  --color-primary: #003a8f;
-  --color-highlight: #1857b2;
-  --color-gold: #8c6817;
-  --color-text: #102a48;
-  --color-text-muted: #46607c;
-  --color-border: rgba(0, 58, 143, 0.3);
+  --color-background: #03152b;
+  --color-surface: #061f3b;
+  --color-surface-light: #0a2a4a;
+  --color-primary: #00aeef;
+  --color-highlight: #27e1ff;
+  --color-gold: #f3c969;
+  --color-text: #ffffff;
+  --color-text-muted: #a9c4dd;
+  --color-border: rgba(0, 174, 239, 0.35);
 }
 
 /* 统一盒模型，避免尺寸计算产生意外偏差。 */
@@ -5934,4 +5934,1119 @@ body.has-open-tech-platform {
 /* 右侧网格装饰降低干扰。 */
 .company-layout::after {
   opacity: 0.08;
+}
+
+/* ==================== 暗色主题 ==================== */
+/* 深蓝科技展览风格：主背景 #03152B，面板 #061F3B，科技蓝 #00AEEF，
+   高亮青 #27E1FF，辅助金 #F3C969。所有暗色调整集中在本区，便于后续统一修改。*/
+
+/* ---- 顶部导航：深蓝玻璃 ---- */
+.site-header {
+  background: rgba(6, 31, 59, 0.96);
+  border-bottom-color: rgba(0, 174, 239, 0.26);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+.brand__logo-placeholder {
+  color: var(--color-highlight);
+  border-color: rgba(0, 174, 239, 0.55);
+}
+
+.brand__text strong {
+  color: var(--color-text);
+}
+
+.brand__text span {
+  color: var(--color-text-muted);
+}
+
+.nav-button {
+  color: var(--color-text-muted);
+}
+
+.nav-button:hover,
+.nav-button:focus-visible,
+.utility-button:hover,
+.utility-button:focus-visible {
+  color: var(--color-text);
+  background: rgba(0, 174, 239, 0.14);
+  border-color: transparent;
+}
+
+.nav-button.is-active {
+  color: var(--color-highlight);
+}
+
+.nav-button.is-active::after {
+  background: var(--color-highlight);
+  box-shadow: 0 0 10px rgba(39, 225, 255, 0.7);
+}
+
+.utility-button {
+  color: var(--color-text);
+  border-color: rgba(0, 174, 239, 0.42);
+}
+
+.utility-actions {
+  border-left-color: rgba(169, 196, 221, 0.22);
+}
+
+/* ---- 内容页底色与标题 ---- */
+.content-page {
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 78% 18%, rgba(0, 174, 239, 0.1), transparent 32%),
+    var(--color-background);
+  background-size: 44px 44px, 44px 44px, auto, auto;
+}
+
+.section-index {
+  color: var(--color-primary);
+}
+
+.section-title-en {
+  color: var(--color-highlight);
+  letter-spacing: 0.2em;
+}
+
+.section-accent {
+  background: linear-gradient(90deg, var(--color-highlight), transparent);
+  box-shadow: 0 0 10px rgba(39, 225, 255, 0.35);
+}
+
+.map-page-heading {
+  border-bottom-color: rgba(0, 174, 239, 0.2);
+}
+
+.map-page-description {
+  color: var(--color-text-muted);
+}
+
+/* ---- 首页（导览页）：深色背景与遮罩 ---- */
+.page--guide {
+  background:
+    radial-gradient(circle at 72% 18%, rgba(0, 174, 239, 0.14), transparent 42%),
+    linear-gradient(145deg, #0a2a4a 0%, #03152b 58%, #061f3b 100%);
+}
+
+.home-hero__overlay {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(3, 15, 30, 0.92) 0%,
+      rgba(5, 24, 46, 0.76) 46%,
+      rgba(4, 22, 42, 0.36) 74%,
+      rgba(3, 15, 30, 0.55) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(3, 15, 30, 0.86) 0%,
+      rgba(4, 20, 40, 0.34) 46%,
+      rgba(3, 15, 30, 0.5) 100%
+    );
+}
+
+.home-hero__grid {
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(0, 174, 239, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.14) 1px, transparent 1px);
+}
+
+.home-hero-carousel__image-placeholder,
+.home-hero-carousel__empty {
+  background:
+    radial-gradient(circle at 72% 28%, rgba(0, 174, 239, 0.16), transparent 30%),
+    linear-gradient(135deg, #0a2a4a, #061f3b);
+}
+
+.page--guide h1 {
+  color: var(--color-text);
+  text-shadow: 0 3px 24px rgba(0, 0, 0, 0.55);
+}
+
+.home-hero__slogan {
+  color: rgba(234, 244, 255, 0.94);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+}
+
+.page--guide .guide-prompt {
+  color: rgba(234, 244, 255, 0.82);
+}
+
+.page--guide .guide-prompt::before {
+  background: var(--color-highlight);
+  box-shadow: 0 0 10px rgba(39, 225, 255, 0.6);
+}
+
+.home-hero-carousel__dot span {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.home-hero-carousel__dot:hover span,
+.home-hero-carousel__dot:focus-visible span,
+.home-hero-carousel__dot.is-active span {
+  background: var(--color-highlight);
+  box-shadow: 0 0 12px rgba(39, 225, 255, 0.7);
+}
+
+.home-hero-carousel__arrow {
+  color: #ffffff;
+  background: rgba(6, 31, 59, 0.72);
+  border-color: rgba(0, 174, 239, 0.42);
+}
+
+.home-hero-carousel__arrow:hover,
+.home-hero-carousel__arrow:focus-visible {
+  color: var(--color-highlight);
+  background: rgba(10, 42, 74, 0.9);
+  border-color: var(--color-highlight);
+}
+
+.site-header--guide {
+  background: linear-gradient(
+    180deg,
+    rgba(6, 31, 59, 0.96),
+    rgba(6, 31, 59, 0.78) 72%,
+    rgba(6, 31, 59, 0)
+  );
+  border-bottom-color: rgba(0, 174, 239, 0.18);
+}
+
+.site-header--guide .nav-button:hover,
+.site-header--guide .nav-button:focus-visible,
+.site-header--guide .utility-button:hover,
+.site-header--guide .utility-button:focus-visible {
+  color: var(--color-text);
+  background: rgba(0, 174, 239, 0.14);
+}
+
+.site-header--guide .nav-button.is-active::after {
+  background: var(--color-highlight);
+  box-shadow: 0 0 10px rgba(39, 225, 255, 0.7);
+}
+
+/* ---- 首页入口按钮：深色玻璃 ---- */
+.guide-entry {
+  color: var(--color-text);
+  background:
+    linear-gradient(135deg, rgba(0, 174, 239, 0.1), transparent 55%),
+    rgba(6, 31, 59, 0.82);
+  border-color: rgba(0, 174, 239, 0.32);
+}
+
+.guide-entry:hover,
+.guide-entry:focus-visible {
+  background-color: rgba(10, 42, 74, 0.96);
+  border-color: var(--color-highlight);
+}
+
+.guide-entry__icon {
+  color: var(--color-highlight);
+  border-color: rgba(0, 174, 239, 0.45);
+}
+
+.guide-entry__title-en {
+  color: var(--color-text-muted);
+}
+
+.page--guide .guide-entry {
+  color: var(--color-text);
+  background:
+    linear-gradient(120deg, rgba(0, 174, 239, 0.12), transparent 64%),
+    rgba(6, 31, 59, 0.82);
+  border-color: rgba(0, 174, 239, 0.3);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+.page--guide .guide-entry:hover,
+.page--guide .guide-entry:focus-visible {
+  color: var(--color-text);
+  background-color: rgba(10, 42, 74, 0.96);
+  border-color: var(--color-highlight);
+}
+
+.page--guide .guide-entry__icon {
+  color: var(--color-highlight);
+  border-color: rgba(0, 174, 239, 0.45);
+}
+
+.guide-divider::before,
+.guide-divider::after {
+  background: linear-gradient(90deg, transparent, rgba(0, 174, 239, 0.55));
+}
+
+.guide-divider::after {
+  background: linear-gradient(90deg, rgba(0, 174, 239, 0.55), transparent);
+}
+
+.placeholder-card {
+  background: rgba(6, 31, 59, 0.86);
+  border-color: rgba(0, 174, 239, 0.36);
+}
+
+/* ---- 地图：深色底图与亮色标注 ---- */
+.world-map-stage {
+  background: #0a1f3d;
+  border-color: rgba(0, 174, 239, 0.32);
+  box-shadow:
+    inset 0 0 48px rgba(0, 0, 0, 0.35),
+    0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+/* 原浅色世界地图通过滤镜转为深蓝地图：深色海洋、深蓝陆地、亮蓝边界 */
+.world-map-image {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(0.95)
+    contrast(1.04);
+}
+
+.map-connection-base {
+  stroke: rgba(39, 225, 255, 0.42);
+}
+
+.map-connection {
+  stroke: rgba(39, 225, 255, 0.9);
+  filter: drop-shadow(0 0 4px rgba(39, 225, 255, 0.7));
+}
+
+.map-origin__ring {
+  fill: rgba(10, 31, 61, 0.85);
+  stroke: #9fe8ff;
+}
+
+.map-origin__dot {
+  fill: var(--color-highlight);
+  stroke: #0a1f3d;
+}
+
+.map-node__ring {
+  fill: rgba(10, 31, 61, 0.82);
+  stroke: var(--color-highlight);
+}
+
+.map-node__dot {
+  fill: var(--color-highlight);
+  stroke: #0a1f3d;
+}
+
+.map-node__label {
+  fill: #eaf4ff;
+  stroke: rgba(10, 31, 61, 0.9);
+  stroke-width: 4px;
+}
+
+.map-node__label-en {
+  fill: var(--color-text-muted);
+}
+
+.map-node:hover .map-node__ring,
+.map-node:focus .map-node__ring {
+  fill: rgba(39, 225, 255, 0.18);
+  stroke: #eaf4ff;
+  stroke-width: 3;
+}
+
+.map-page--future .map-node--gold .map-node__ring {
+  fill: rgba(243, 201, 105, 0.14);
+  stroke: var(--color-gold);
+}
+
+.map-page--future .map-node--gold .map-node__dot {
+  fill: var(--color-gold);
+  stroke: #8a6516;
+}
+
+.map-page--future .map-node--gold .map-node__label {
+  fill: #ffe3a3;
+}
+
+.map-page--future .map-node--gold .map-node__label-en {
+  fill: #d9bc7a;
+}
+
+.map-page--future .map-node--blue .map-node__ring {
+  fill: rgba(0, 174, 239, 0.12);
+  stroke: var(--color-highlight);
+}
+
+.map-page--future .map-node--blue .map-node__dot {
+  fill: var(--color-highlight);
+}
+
+.map-page--future .map-node--gold.is-selected .map-node__ring {
+  fill: rgba(243, 201, 105, 0.24);
+  stroke: #f3c969;
+  stroke-width: 3.5;
+}
+
+.map-page--future .map-node--blue.is-selected .map-node__ring {
+  fill: rgba(0, 174, 239, 0.22);
+  stroke: #eaf4ff;
+  stroke-width: 3.5;
+}
+
+.map-page--future .map-node.is-selected .map-node__dot {
+  stroke: #0a1f3d;
+}
+
+.map-legend {
+  color: var(--color-text-muted);
+  background: rgba(6, 31, 59, 0.92);
+  border-color: rgba(0, 174, 239, 0.28);
+}
+
+.map-legend__marker--gold {
+  color: var(--color-gold);
+  background: rgba(243, 201, 105, 0.3);
+}
+
+.map-legend__marker--blue {
+  color: var(--color-highlight);
+  background: rgba(0, 174, 239, 0.3);
+}
+
+.map-empty-state {
+  color: var(--color-text-muted);
+  background: rgba(6, 31, 59, 0.94);
+  border-color: rgba(0, 174, 239, 0.38);
+}
+
+.map-load-error {
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+}
+
+.world-map-globe {
+  background: #0a1f3d;
+}
+
+.cesium-widget,
+.cesium-widget canvas {
+  background: #0a1f3d;
+}
+
+/* ---- 项目成果弹窗 ---- */
+.project-modal__panel {
+  color: var(--color-text);
+  background: #061f3b;
+  border-color: rgba(0, 174, 239, 0.48);
+}
+
+.project-modal__close {
+  color: var(--color-text);
+  background: rgba(10, 42, 74, 0.9);
+  border-color: rgba(0, 174, 239, 0.5);
+}
+
+.project-modal__media {
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.06) 1px, transparent 1px),
+    #0a1f3d;
+  background-size: 32px 32px;
+}
+
+.project-modal--turnkey .project-modal__panel {
+  background: #061f3b;
+  border-color: rgba(0, 174, 239, 0.36);
+}
+
+.project-modal--turnkey .project-modal__media {
+  background: #0a1f3d;
+}
+
+.project-modal--turnkey .project-modal__media::before {
+  background: linear-gradient(
+    90deg,
+    rgba(3, 15, 30, 0.82) 0%,
+    rgba(5, 24, 46, 0.42) 52%,
+    rgba(4, 22, 42, 0.14) 100%
+  );
+}
+
+.project-modal--turnkey .project-modal__media::after {
+  background: linear-gradient(
+    to top,
+    rgba(3, 15, 30, 0.96) 0%,
+    rgba(5, 24, 46, 0.68) 48%,
+    rgba(4, 22, 42, 0.16) 100%
+  );
+}
+
+.project-modal--turnkey .project-modal__country {
+  color: #ffffff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+.project-modal--turnkey .project-modal__country-header {
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+.project-modal--turnkey .project-modal__overview {
+  border-left-color: rgba(39, 225, 255, 0.65);
+}
+
+.project-modal--turnkey .project-modal__overview .project-modal__label {
+  color: rgba(234, 244, 255, 0.82);
+}
+
+.project-modal--turnkey .project-modal__overview .project-modal__description {
+  color: rgba(234, 244, 255, 0.94);
+}
+
+.project-modal--turnkey .project-modal__workspace {
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 42, 74, 0.98) 0,
+    #061f3b 30px
+  );
+}
+
+.project-modal--turnkey .project-modal__project-switcher::before {
+  color: rgba(169, 196, 221, 0.78);
+}
+
+.project-modal__project-button {
+  color: var(--color-text-muted);
+  border-bottom-color: rgba(169, 196, 221, 0.14);
+}
+
+.project-modal__project-button:hover,
+.project-modal__project-button:focus-visible {
+  color: var(--color-text);
+  background: rgba(0, 174, 239, 0.08);
+  outline-color: rgba(0, 174, 239, 0.4);
+}
+
+.project-modal__project-button.is-active {
+  color: var(--color-text);
+  background: rgba(0, 174, 239, 0.14);
+}
+
+.project-modal--turnkey .project-modal__details {
+  border-left-color: rgba(169, 196, 221, 0.18);
+}
+
+.project-modal--turnkey .project-modal__project-name {
+  color: #ffffff;
+}
+
+.project-modal--turnkey .project-modal__close {
+  color: #ffffff;
+  background: rgba(6, 31, 59, 0.82);
+  border-color: rgba(0, 174, 239, 0.45);
+}
+
+.project-modal__empty {
+  border-top-color: rgba(0, 174, 239, 0.26);
+}
+
+/* ---- 双千亿计划弹窗 ---- */
+.double-billion-detail-modal .future-modal__panel {
+  background: #0a2a4a;
+  border-color: rgba(0, 174, 239, 0.3);
+}
+
+.double-billion-detail-modal .project-modal__close {
+  color: var(--color-text);
+  border-color: rgba(169, 196, 221, 0.26);
+  background: rgba(10, 42, 74, 0.9);
+}
+
+.double-billion-detail-modal .future-modal__header {
+  border-bottom-color: rgba(169, 196, 221, 0.14);
+}
+
+.double-billion-detail-modal .future-modal__header .project-modal__country {
+  color: #ffffff;
+}
+
+.future-detail__overview {
+  color: #eaf4ff;
+  background: #061f3b;
+}
+
+.future-detail__business {
+  background: #0a2a4a;
+}
+
+.future-detail__section-heading h3,
+.future-business-panel__heading h3,
+.future-project-group h4,
+.future-mineral-card__copy h4,
+.future-mineral-copy h4,
+.future-project-detail h4 {
+  color: #ffffff;
+}
+
+.future-detail__overview .future-modal__description,
+.future-mineral-copy {
+  color: var(--color-text-muted);
+}
+
+.future-detail__focus span {
+  color: var(--color-text-muted);
+  background: rgba(0, 174, 239, 0.1);
+}
+
+.future-choice-tab {
+  color: var(--color-text-muted);
+  background: rgba(6, 31, 59, 0.75);
+  border-color: rgba(169, 196, 221, 0.24);
+}
+
+.future-choice-tab:hover,
+.future-choice-tab:focus-visible {
+  color: #ffffff;
+  border-color: var(--color-highlight);
+}
+
+.future-project-status-tab.is-active,
+.future-business-tab--project.is-active {
+  color: #ffffff;
+  background: var(--color-highlight);
+  border-color: var(--color-highlight);
+}
+
+.future-business-panel__heading .future-modal__description {
+  color: var(--color-text-muted);
+}
+
+.future-modal__section {
+  border-top-color: rgba(0, 174, 239, 0.22);
+}
+
+.future-modal__business-type {
+  border-color: rgba(0, 174, 239, 0.45);
+  color: var(--color-highlight);
+  background: rgba(0, 174, 239, 0.1);
+}
+
+.future-modal__business-type--gold {
+  border-color: rgba(243, 201, 105, 0.55);
+  color: var(--color-gold);
+  background: rgba(243, 201, 105, 0.1);
+}
+
+.future-mineral-card {
+  background: rgba(6, 31, 59, 0.82);
+  border-color: rgba(0, 174, 239, 0.28);
+}
+
+.future-mineral-card__media {
+  background: #0a1f3d;
+}
+
+.future-mineral-media {
+  background: #0a2a4a;
+}
+
+.future-mineral-media__placeholder {
+  color: var(--color-text-muted);
+}
+
+.future-mineral-copy > p,
+.future-mineral-analysis p {
+  color: var(--color-text-muted);
+}
+
+.future-mineral-analysis h5 {
+  color: var(--color-gold);
+}
+
+.future-project-item {
+  color: var(--color-text-muted);
+  border-bottom-color: rgba(169, 196, 221, 0.12);
+}
+
+.future-project-item:hover,
+.future-project-item:focus-visible,
+.future-project-item.is-active {
+  color: #ffffff;
+  background: rgba(0, 174, 239, 0.08);
+}
+
+.future-project-detail {
+  border-top-color: rgba(169, 196, 221, 0.16);
+}
+
+.future-project-detail .future-modal__description {
+  color: var(--color-text-muted);
+}
+
+.future-image-lightbox__content {
+  background: #0a2440;
+  border-color: rgba(0, 174, 239, 0.3);
+}
+
+.future-image-lightbox__content p {
+  color: var(--color-text-muted);
+}
+
+.future-image-lightbox__close {
+  color: #ffffff;
+  background: rgba(6, 31, 59, 0.9);
+  border-color: rgba(169, 196, 221, 0.26);
+}
+
+/* ---- 海外矿业展示 ---- */
+.mining-hero {
+  background: #0a1f3d;
+  border-color: rgba(243, 201, 105, 0.36);
+}
+
+.mining-hero__media {
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.05) 1px, transparent 1px),
+    #0a1f3d;
+  background-size: 34px 34px;
+}
+
+.mining-hero__placeholder {
+  color: var(--color-text-muted);
+}
+
+.mining-hero__shade {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(3, 15, 30, 0.94) 0%,
+      rgba(5, 24, 46, 0.76) 48%,
+      rgba(4, 22, 42, 0.3) 100%
+    ),
+    linear-gradient(
+      to top,
+      rgba(3, 15, 30, 0.95) 0%,
+      rgba(5, 24, 46, 0.58) 48%,
+      rgba(4, 22, 42, 0.16) 100%
+    );
+}
+
+.mining-hero__page-heading h2 {
+  color: #ffffff;
+}
+
+.mining-hero__copy h3 {
+  color: #ffffff;
+}
+
+.mining-hero__overview {
+  color: rgba(234, 244, 255, 0.9);
+}
+
+.mining-hero__page-heading .section-index,
+.mining-hero__page-heading .section-title-en,
+.mining-hero__page-heading h2,
+.mining-hero__copy {
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+.mining-carousel__viewport {
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 50% 94%, rgba(243, 201, 105, 0.08), transparent 36%),
+    rgba(6, 31, 59, 0.7);
+  background-size: 38px 38px, 38px 38px, auto, auto;
+  border-color: rgba(0, 174, 239, 0.18);
+}
+
+.mining-data-card {
+  color: var(--color-text);
+  background:
+    linear-gradient(145deg, #0a2a4a, #061f3b);
+  border-color: rgba(0, 174, 239, 0.32);
+  box-shadow: 0 15px 36px rgba(0, 0, 0, 0.5);
+}
+
+.mining-data-card--current {
+  border-color: rgba(243, 201, 105, 0.55);
+}
+
+.mining-data-card__header {
+  border-bottom-color: rgba(169, 196, 221, 0.18);
+}
+
+.mining-data-card__title {
+  color: #ffffff;
+}
+
+.mining-metric {
+  border-left-color: rgba(169, 196, 221, 0.16);
+}
+
+.mining-metric__label {
+  color: rgba(169, 196, 221, 0.82);
+}
+
+.mining-metric__value {
+  color: var(--color-gold);
+}
+
+.mining-metric__unit {
+  color: var(--color-text-muted);
+}
+
+.mining-focus {
+  border-top-color: rgba(169, 196, 221, 0.14);
+}
+
+.mining-focus__list li {
+  color: rgba(234, 244, 255, 0.9);
+}
+
+.mining-project-investment {
+  color: var(--color-gold);
+  background: rgba(243, 201, 105, 0.1);
+  border-left-color: rgba(243, 201, 105, 0.72);
+}
+
+.mining-project-description {
+  color: var(--color-text-muted);
+}
+
+.mining-project-metrics {
+  border-top-color: rgba(169, 196, 221, 0.14);
+}
+
+.mining-local-map {
+  background: #0a1f3d;
+  border-color: rgba(0, 174, 239, 0.24);
+}
+
+.mining-local-map__svg {
+  background: #0a1f3d;
+}
+
+.mining-local-map__marker-ring {
+  fill: rgba(243, 201, 105, 0.12);
+}
+
+.mining-local-map__marker-dot {
+  stroke: #8a6516;
+}
+
+.mining-local-map__marker-label {
+  fill: #ffe3a3;
+  stroke: rgba(10, 31, 61, 0.95);
+}
+
+.mining-local-map__legend,
+.mining-local-map__note {
+  color: var(--color-text-muted);
+  background: rgba(6, 31, 59, 0.92);
+  border-color: rgba(169, 196, 221, 0.22);
+}
+
+.mining-local-map__legend {
+  color: var(--color-gold);
+}
+
+.mining-carousel__arrow {
+  color: var(--color-gold);
+  background: rgba(6, 31, 59, 0.9);
+  border-color: rgba(243, 201, 105, 0.5);
+}
+
+.mining-carousel__dot::before {
+  background: rgba(169, 196, 221, 0.45);
+}
+
+.mining-video-item__placeholder {
+  color: var(--color-text-muted);
+  background: #0a1f3d;
+  border-color: rgba(0, 174, 239, 0.34);
+}
+
+/* ---- 科技赋能 ---- */
+.tech-carousel__viewport {
+  border-color: rgba(0, 174, 239, 0.18);
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 50% 88%, rgba(0, 174, 239, 0.14), transparent 34%),
+    rgba(6, 31, 59, 0.72);
+  background-size: 38px 38px, 38px 38px, auto, auto;
+}
+
+.tech-platform-card {
+  background:
+    linear-gradient(145deg, #0a2a4a, #061f3b);
+  border-color: rgba(0, 174, 239, 0.36);
+}
+
+.tech-platform-card__media {
+  background:
+    linear-gradient(135deg, rgba(0, 174, 239, 0.08), transparent 58%),
+    #0a1f3d;
+  border-bottom-color: rgba(0, 174, 239, 0.24);
+}
+
+.tech-platform-card__image {
+  background: #0a1f3d;
+}
+
+.tech-platform-card__image-placeholder {
+  color: var(--color-text-muted);
+  background:
+    linear-gradient(rgba(0, 174, 239, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 174, 239, 0.05) 1px, transparent 1px),
+    rgba(10, 42, 74, 0.95);
+  background-size: 28px 28px;
+}
+
+.tech-platform-card__title {
+  color: #ffffff;
+}
+
+.tech-platform-card__summary {
+  color: var(--color-text-muted);
+}
+
+.tech-platform-card__copy::before {
+  box-shadow: 0 0 10px rgba(39, 225, 255, 0.5);
+}
+
+.tech-carousel__arrow {
+  color: #ffffff;
+  background: rgba(6, 31, 59, 0.9);
+  border-color: rgba(0, 174, 239, 0.5);
+}
+
+.tech-carousel__arrow:hover,
+.tech-carousel__arrow:focus-visible {
+  color: var(--color-highlight);
+  background: rgba(10, 42, 74, 0.95);
+  border-color: var(--color-highlight);
+}
+
+.tech-carousel__dot::before {
+  background: rgba(169, 196, 221, 0.45);
+  border-color: rgba(169, 196, 221, 0.5);
+}
+
+.tech-carousel__empty {
+  color: var(--color-text-muted);
+  background: rgba(6, 31, 59, 0.9);
+  border-color: rgba(0, 174, 239, 0.38);
+}
+
+/* ---- 公司简介 ---- */
+.company-layout {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(0, 174, 239, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(0, 174, 239, 0.04), transparent 52%);
+  border-color: rgba(0, 174, 239, 0.2);
+}
+
+.company-positioning__headline {
+  color: #ffffff;
+  text-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+}
+
+.company-positioning__headline strong {
+  color: var(--color-highlight);
+  text-shadow: 0 0 22px rgba(39, 225, 255, 0.25);
+}
+
+.company-description {
+  color: var(--color-text-muted);
+}
+
+.company-description__highlight {
+  color: #ffffff;
+}
+
+.company-profile-copy {
+  border-left-color: rgba(0, 174, 239, 0.3);
+}
+
+.company-achievements {
+  background:
+    linear-gradient(90deg, rgba(0, 174, 239, 0.08), transparent 45%),
+    rgba(4, 20, 40, 0.94);
+  border-top-color: rgba(0, 174, 239, 0.26);
+}
+
+.company-achievements__intro h3 {
+  color: #ffffff;
+}
+
+.company-achievement-card {
+  background:
+    linear-gradient(145deg, rgba(0, 174, 239, 0.09), transparent 52%),
+    rgba(10, 42, 74, 0.72);
+  border-color: rgba(0, 174, 239, 0.28);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
+}
+
+.company-achievement-card::after {
+  border-color: rgba(0, 174, 239, 0.7);
+}
+
+.company-achievement-card:hover {
+  background-color: rgba(10, 42, 74, 0.95);
+  border-color: rgba(39, 225, 255, 0.55);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+
+.company-achievement-card__value {
+  color: #ffffff;
+  text-shadow: 0 0 16px rgba(39, 225, 255, 0.25);
+}
+
+.company-achievement-card__label-en {
+  color: var(--color-highlight);
+}
+
+.company-achievement-card__description {
+  color: var(--color-text-muted);
+}
+
+.company-layout::after {
+  opacity: 0.1;
+}
+
+/* ---- 数字人浮窗与 AI 助手 ---- */
+.digital-human-float__avatar {
+  background:
+    radial-gradient(circle at 50% 32%, rgba(0, 174, 239, 0.16), transparent 55%),
+    linear-gradient(145deg, #0a2a4a, #061f3b);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+
+.llm-assistant__panel {
+  background: #0a2440;
+  border-color: rgba(0, 174, 239, 0.3);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.llm-assistant__header {
+  background: linear-gradient(135deg, #062a52, #0a4a7a);
+}
+
+.llm-assistant__messages {
+  background: #071b33;
+}
+
+.llm-assistant__message--user .llm-assistant__bubble {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0072bc, #00579e);
+}
+
+.llm-assistant__message--assistant .llm-assistant__bubble {
+  color: var(--color-text);
+  background: #0e2a4a;
+  border-color: rgba(0, 174, 239, 0.24);
+}
+
+.llm-assistant__status {
+  color: var(--color-text-muted);
+  background: #0a2440;
+  border-top-color: rgba(0, 174, 239, 0.14);
+}
+
+.llm-assistant__input {
+  background: #0a2440;
+  border-top-color: rgba(0, 174, 239, 0.2);
+}
+
+.llm-assistant__question {
+  color: var(--color-text);
+  background: #061f3b;
+  border-color: rgba(0, 174, 239, 0.34);
+}
+
+.llm-assistant__question::placeholder {
+  color: rgba(169, 196, 221, 0.65);
+}
+
+.llm-assistant__question:focus {
+  border-color: var(--color-highlight);
+  box-shadow: 0 0 0 2px rgba(39, 225, 255, 0.24);
+}
+
+.llm-assistant__mic {
+  color: var(--color-text);
+  background: #061f3b;
+  border-color: rgba(0, 174, 239, 0.34);
+}
+
+.llm-assistant__send {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0072bc, #00579e);
+  border-color: #00579e;
+}
+
+.llm-assistant__send:hover,
+.llm-assistant__send:focus-visible {
+  background: #0a6fc0;
+  border-color: #0a6fc0;
+}
+
+/* ---- 科技平台全屏加载层：保持深色 ---- */
+.tech-platform-overlay__frame {
+  background: #0e1c30;
+}
+
+/* ==================== 矿业双矿并列布局 ==================== */
+/* 两座金矿（上库马尔克金矿、东杜奥巴金矿）在轮播第一屏并列展示。 */
+.mining-data-card--pair {
+  width: min(980px, 78vw);
+}
+
+.mining-project-pair {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: stretch;
+  gap: clamp(14px, 1.8vw, 24px);
+}
+
+.mining-mine-card {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(14px, 1.6vw, 22px);
+  flex-direction: column;
+  background:
+    linear-gradient(145deg, rgba(0, 174, 239, 0.07), transparent 55%),
+    rgba(6, 31, 59, 0.92);
+  border: 1px solid rgba(0, 174, 239, 0.26);
+  border-radius: 8px;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.22);
+}
+
+.mining-mine-card .mining-data-card__header {
+  border-bottom-color: rgba(169, 196, 221, 0.18);
+}
+
+.mining-mine-card .mining-project-investment {
+  margin-top: 12px;
+}
+
+.mining-mine-card .mining-project-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.mining-mine-card .mining-project-metrics {
+  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .mining-project-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .mining-mine-card .mining-project-description {
+    -webkit-line-clamp: 3;
+  }
 }
