@@ -19,6 +19,9 @@
   var sdkContainer = null;
   var fallbackImage = null;
   var labelEl = null;
+  var retryCount = 0;
+  var retryTimer = null;
+  var watchdogTimer = null;
 
   function setLabel(text) {
     if (labelEl) {
@@ -93,14 +96,19 @@
       gatewayServer: "https://nebula-agent.xingyun3d.com/user/v1/ttsa/session",
       hardwareAcceleration: "prefer-hardware",
       onMessage: function (message) {
-        if (message && message.code === 10001) {
-          setLabel("数字人容器异常，点击仍可聊天");
+        if (!message) {
+          return;
+        }
+        // 10003 会话错误；10005 账号并发数已满。
+        if (message.code === 10003 || message.code === 10005) {
+          scheduleRetry();
         }
       },
       onStatusChange: function (status) {
         // 0 在线，1 离线。
         if (status === 0) {
           sdkReady = true;
+          retryCount = 0;
           setLabel("数字人助手");
         }
       },
@@ -124,6 +132,8 @@
       return;
     }
     initialized = true;
+    stopWatchdog();
+    startWatchdog();
     try {
       sdk = new window.XmovAvatar(createSdkOptions());
       sdk.init({
@@ -132,6 +142,7 @@
           var value = Math.round(progress);
           if (value >= 100) {
             sdkReady = true;
+            retryCount = 0;
             if (fallbackImage) {
               fallbackImage.style.display = "none";
             }
@@ -161,6 +172,62 @@
     return !!sdk;
   }
 
+  /* 会话失败（如并发数已满）时，延迟后销毁重试，最多重试 3 次。 */
+  function scheduleRetry() {
+    if (retryCount >= 3) {
+      setLabel("数字人连接数已满，请稍后刷新页面重试");
+      return;
+    }
+    retryCount += 1;
+    setLabel("数字人连接数已满，稍后自动重试…");
+    if (retryTimer) {
+      window.clearTimeout(retryTimer);
+    }
+    retryTimer = window.setTimeout(function () {
+      if (sdk) {
+        try {
+          sdk.destroy();
+        } catch (error) {
+          // 忽略销毁异常。
+        }
+        sdk = null;
+      }
+      initialized = false;
+      start();
+    }, 20000);
+  }
+
+  /* 看门狗：初始化一段时间后仍未就绪，销毁重试一次，避免卡死。 */
+  function startWatchdog() {
+    if (watchdogTimer) {
+      window.clearTimeout(watchdogTimer);
+    }
+    watchdogTimer = window.setTimeout(function () {
+      if (!sdkReady && sdk) {
+        retryCount += 1;
+        if (retryCount >= 3) {
+          setLabel("数字人加载超时，请稍后刷新页面重试");
+          return;
+        }
+        try {
+          sdk.destroy();
+        } catch (error) {
+          // 忽略销毁异常。
+        }
+        sdk = null;
+        initialized = false;
+        start();
+      }
+    }, 60000);
+  }
+
+  function stopWatchdog() {
+    if (watchdogTimer) {
+      window.clearTimeout(watchdogTimer);
+      watchdogTimer = null;
+    }
+  }
+
   window.tbeaDigitalHuman = {
     start: start,
     speak: speak,
@@ -176,6 +243,11 @@
       }
       initialized = false;
       sdkReady = false;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+      stopWatchdog();
     }
   };
 
@@ -189,9 +261,12 @@
     start();
   }
 
-  window.addEventListener("beforeunload", function () {
+  /* 页面隐藏/关闭/刷新时销毁会话，释放账号并发名额。 */
+  function releaseSession() {
     if (window.tbeaDigitalHuman) {
       window.tbeaDigitalHuman.destroy();
     }
-  });
+  }
+  window.addEventListener("beforeunload", releaseSession);
+  window.addEventListener("pagehide", releaseSession);
 })();

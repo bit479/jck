@@ -3419,7 +3419,7 @@ document.addEventListener("DOMContentLoaded", function () {
       viewer.imageryLayers.addImageryProvider(googleProvider);
 
       viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(
-        "#b7d2e8"
+        "#0a1f3d"
       );
       /* 最小缩放距离：原为 12 万米（120 公里），导致放大到一定程度后无法继续放大；
        * 调小后允许镜头贴近地面。影像最高约 z=19，距离再近画面会变模糊，属数据限制。 */
